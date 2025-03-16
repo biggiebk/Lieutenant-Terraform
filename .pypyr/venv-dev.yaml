@@ -1,0 +1,11 @@
+# Create a python virtual environment with required modules for developing LT
+# pypyr venv-dev path_to_new_venv
+context_parser: pypyr.parser.string
+steps:
+  - name: pypyr.steps.venv
+    in:
+      venv:
+        path: "{argString}"
+        pip: beartype==0.20.0 pytest==8.3.5 pylint==3.3.5
+        clear: true
+        prompt: lt-dev

@@ -1,0 +1,11 @@
+# Create a python virtual environment with required modules for running LT
+# pypyr venv-deploy path_to_new_venv
+context_parser: pypyr.parser.string
+steps:
+  - name: pypyr.steps.venv
+    in:
+      venv:
+        path: "{argString}"
+        pip: beartype==0.20.0
+        clear: true
+        prompt: lt
