@@ -27,7 +27,7 @@ class LieutenantTerraform:
 		self.tkr = tk.Tk()
 		self.tkr.title("Lieutenant Terraform")
 		self.raw_output = ""
-		self.tkr.geometry(self.cfg.prefs["settings"]["Window geometry"])
+		self.tkr.geometry(self.cfg.prefs["settings"].get("Window geometry", "800x600"))
 		self.tkr.protocol("WM_DELETE_WINDOW", self.__exit)
 		self.output = tk.StringVar()
 
