@@ -30,7 +30,7 @@ class LieutenantTerraformConfig():
 			self.config_file = "./.lt_cfg.json"
 		elif os.path.isfile(f"{os.getenv('HOME')}/.lt_cfg.json"): # Is it in the users home directory?
 			self.config_file = f"{os.getenv('HOME')}/.lt_cfg.json"
-		
+
 		# Load config defaults
 		self.prefs = {}
 		self.prefs['aliases'] = {}

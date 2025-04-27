@@ -5,16 +5,19 @@ import tkinter as tk
 from tkinter import ttk
 from beartype import beartype
 from modules.config import LieutenantTerraformConfig
-from modules.ui.child_window import Child_Window
+from modules.ui.child_window import ChildWindow
 
-class Preferences_UI(Child_Window):
+
+class PreferencesUI(ChildWindow):
 	"""
 	Description: Class for displaying and managing configuration settings
 	"""
+
 	@beartype
 	def __init__(self, config: LieutenantTerraformConfig, preferences: str) -> None:
 		"""
 		Initialize the Preferences UI.
+
 		Args:
 			config (LieutenantTerraformConfig): Configuration object for the application.
 			preferences (str): The preferences category to display (e.g., "settings", "cmds").
@@ -41,14 +44,14 @@ class Preferences_UI(Child_Window):
 			background="lightgray",
 			troughcolor="darkgray",
 			bordercolor="black",
-			arrowcolor="black"
+			arrowcolor="black",
 		)
 		style.configure(
 			"Horizontal.TScrollbar",
 			background="lightgray",
 			troughcolor="darkgray",
 			bordercolor="black",
-			arrowcolor="black"
+			arrowcolor="black",
 		)
 
 	def __build_ui(self):
@@ -67,15 +70,19 @@ class Preferences_UI(Child_Window):
 		container.grid_columnconfigure(0, weight=1)
 
 		canvas = tk.Canvas(container, highlightthickness=0)  # Remove the border
-		scrollbar_v = ttk.Scrollbar(container, orient="vertical", command=canvas.yview, style="Vertical.TScrollbar")
-		scrollbar_h = ttk.Scrollbar(container, orient="horizontal", command=canvas.xview, style="Horizontal.TScrollbar")
+		scrollbar_v = ttk.Scrollbar(
+			container, orient="vertical", command=canvas.yview, style="Vertical.TScrollbar"
+		)
+		scrollbar_h = ttk.Scrollbar(
+			container, orient="horizontal", command=canvas.xview, style="Horizontal.TScrollbar"
+		)
 
 		scrollable_frame = ttk.Frame(canvas, padding=0)  # Ensure no padding is applied
 
 		# Configure the canvas and scrollbars
 		scrollable_frame.bind(
 			"<Configure>",
-			lambda e: canvas.configure(scrollregion=canvas.bbox("all"))
+			lambda e: canvas.configure(scrollregion=canvas.bbox("all")),
 		)
 		canvas.create_window((0, 0), window=scrollable_frame, anchor="nw")
 		canvas.configure(yscrollcommand=scrollbar_v.set, xscrollcommand=scrollbar_h.set)
