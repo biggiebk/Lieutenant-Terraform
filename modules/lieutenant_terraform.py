@@ -211,8 +211,10 @@ class LieutenantTerraform:
 			if self.cfg.prefs["settings"]["Save window geometry on exit"]:
 				self.cfg.prefs["settings"]["Window geometry"] = self.tkr.geometry()
 				self.cfg.save()
-		except Exception as e:
-			print(f"Error saving configuration: {str(e)}")
+		except KeyError as e:
+			print(f"KeyError: Missing configuration key - {str(e)}")
+		except IOError as e:
+			print(f"IOError: Failed to save configuration - {str(e)}")
 		finally:
 			self.tkr.destroy()
 
@@ -237,7 +239,15 @@ class LieutenantTerraform:
 			error_message = f"Error: Command '{e.cmd}' failed with return code {e.returncode}\n"
 			text_area.insert(tk.END, error_message)
 			print(error_message)
-		except Exception as e:
-			error_message = f"Unexpected error: {str(e)}\n"
+		except FileNotFoundError as e:
+			error_message = f"FileNotFoundError: Command not found - {str(e)}\n"
+			text_area.insert(tk.END, error_message)
+			print(error_message)
+		except PermissionError as e:
+			error_message = f"PermissionError: Permission denied - {str(e)}\n"
+			text_area.insert(tk.END, error_message)
+			print(error_message)
+		except OSError as e:
+			error_message = f"OSError: OS-related error - {str(e)}\n"
 			text_area.insert(tk.END, error_message)
 			print(error_message)
