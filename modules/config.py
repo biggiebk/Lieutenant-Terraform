@@ -62,6 +62,7 @@ class LieutenantTerraformConfig():
 		self.prefs['settings'] = {
 			"Debug": False,
 			"Save window geometry on exit": True,
+			"TF_CLI_ARGS": "-no-color",
 			"Window geometry": "754x763"
 		}
 		if self.config_file != "":
@@ -86,6 +87,7 @@ class LieutenantTerraformConfig():
 			self.prefs['aliases'].update(cfg['aliases'])
 		self.prefs["config_file"] = self.config_file
 		self.prefs.update()
+		self.set_env()  # Set environment variables based on the loaded config
 
 	@beartype
 	def save(self) -> None:
@@ -103,6 +105,16 @@ class LieutenantTerraformConfig():
 			# Exclude the "config_file" key from being saved
 			data_to_save = {key: value for key, value in self.prefs.items() if key != "config_file"}
 			json.dump(data_to_save, cfg, indent=4)
+
+	@beartype
+	def set_env(self) -> None:
+		"""
+		Description: Set environment variables based on the current preferences
+		Responsible for:
+			1. Setting environment variables for Terraform CLI arguments
+		"""
+		if 'TF_CLI_ARGS' in self.prefs['settings']:
+			os.environ['TF_CLI_ARGS'] = self.prefs['settings']['TF_CLI_ARGS']
 
 	@beartype
 	def update(self, updates: dict, save_config: bool = False) -> None:
