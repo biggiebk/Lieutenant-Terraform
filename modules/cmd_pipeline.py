@@ -61,6 +61,9 @@ class CommandPipeline:
 		Returns:
 			bool: True if the command succeeded, False if it failed.
 		"""
+		self.output_callback(f"====={' '.join(cmd)}=====\n", tag="cmd")
+		if cmd[0] in self.cfg.prefs['cmds']:
+			cmd[0] = self.cfg.prefs['cmds'][cmd[0]]
 		try:
 			with Popen(
 				cmd,
@@ -72,14 +75,15 @@ class CommandPipeline:
 				for line in process.stdout:
 					self.output_callback(line)
 				for error_line in process.stderr:
-					self.output_callback(f"ERROR: {error_line}")
+					self.output_callback("ERROR: ", "error")
+					self.output_callback(error_line)
 			if process.returncode != 0:
 				raise CalledProcessError(process.returncode, process.args)
 			return True
 		except (CalledProcessError, FileNotFoundError, PermissionError, OSError) as e:
 			if isinstance(e, CalledProcessError):
 				error_msg = (
-					f"Error: Command '{e.cmd}' failed with return code {e.returncode}\n"
+					f"CommandError '{' '.join(e.cmd)}' failed with return code {e.returncode}\n"
 				)
 			elif isinstance(e, FileNotFoundError):
 				error_msg = f"FileNotFoundError: Command not found - {str(e)}\n"
@@ -87,13 +91,13 @@ class CommandPipeline:
 				error_msg = f"PermissionError: Permission denied - {str(e)}\n"
 			else:
 				error_msg = f"OSError: OS-related error - {str(e)}\n"
-			self.output_callback(error_msg)
+			self.output_callback(error_msg, "error")
 			if on_error == "halt":
 				return False
 			elif on_error == "continue":
 				return True
 			elif on_error == "prompt":
-				return self._prompt_error(error_msg)
+				return self._prompt_error(error_msg, tag="error")
 			return False
 
 	@beartype

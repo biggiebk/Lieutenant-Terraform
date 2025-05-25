@@ -68,6 +68,12 @@ class LieutenantTerraform:
 		self.tkr.grid_rowconfigure(0, weight=1)
 		self.tkr.grid_columnconfigure(0, weight=1)
 
+		# Configure tags
+		self.main_text_area.tag_configure("cmd", foreground="lightgray", font=("Arial", 10, "bold"))
+		self.main_text_area.tag_configure("error", foreground="red")
+		self.main_text_area.tag_configure("success", foreground="green")
+		self.main_text_area.tag_configure("warn", foreground="yellow")
+
 		# Configure scrollbars for the text area
 		style = ttk.Style()
 		style.configure(
@@ -272,14 +278,14 @@ class LieutenantTerraform:
 			cmd (list): Command to execute.
 			text_area (tk.Text): Text area to display the command output.
 		"""
-		def output_callback(line: str) -> None:
+		def output_callback(line: str, tag: str = None) -> None:
 			"""
 			Handle the output of the command by inserting it into the text area.
 
 			Args:
 				line (str): A line of output from the command.
 			"""
-			text_area.insert(tk.END, line)
+			text_area.insert(tk.END, line, tag)
 			self.raw_output += line
 			print(line, end="")
 
