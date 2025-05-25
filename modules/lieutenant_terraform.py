@@ -2,12 +2,17 @@
 Description: Main module for LT (Lieutenant Terraform)
 """
 import re
+import threading
 import tkinter as tk
 from tkinter import ttk
-from subprocess import Popen, PIPE, CalledProcessError
+from subprocess import CalledProcessError
 from beartype import beartype
 from modules.config import LieutenantTerraformConfig
+from modules.ui.aliases_ui import AliasesUI
 from modules.ui.preferences_ui import PreferencesUI
+from modules.cmd_pipeline import CommandPipeline
+import os
+import subprocess
 
 
 class LieutenantTerraform:
@@ -32,6 +37,8 @@ class LieutenantTerraform:
 		self.tkr.protocol("WM_DELETE_WINDOW", self.__exit)
 		self.output = tk.StringVar()
 
+		self.thread = None
+
 		# Search-related variables
 		self.search_results = []
 		self.current_match_index = -1
@@ -53,7 +60,7 @@ class LieutenantTerraform:
 		menubar.add_cascade(label="Preferences", menu=preferences)
 		preferences.add_command(label="Settings", command=lambda: PreferencesUI(self.cfg, "settings"))
 		preferences.add_command(label="Commands", command=lambda: PreferencesUI(self.cfg, "cmds"))
-		preferences.add_command(label="Aliases", command=lambda: PreferencesUI(self.cfg, "aliases"))
+		preferences.add_command(label="Aliases", command=lambda: AliasesUI(self.cfg))
 		self.tkr.configure(menu=menubar)
 
 		# Configure the text area for displaying output
@@ -112,21 +119,63 @@ class LieutenantTerraform:
 		next_button = ttk.Button(navigation_frame, text=">", command=self.__next_match)
 		next_button.grid(column=1, row=0, padx=1)
 
-		self.search_status = ttk.Label(navigation_frame, text="0/0 matches")
-		self.search_status.grid(column=2, row=0, padx=5)
+		self.search_status = ttk.Label(navigation_frame, foreground="darkgray", text="0/0 matches")
+		self.search_status.grid(column=2, row=0, padx=5, sticky="w")
 
+		# Add folder and branch labels to the navigation frame
+		self.folder_label = ttk.Label(
+			navigation_frame,
+			text="",
+			anchor=tk.W,
+			foreground="darkgray",  # Text color
+			font=("Arial", 10),
+		)
+		self.folder_label.grid(column=3, row=0, padx=5, sticky="e")
+
+		self.branch_label = ttk.Label(
+			navigation_frame,
+			text="",
+			anchor=tk.W,
+			foreground="darkgray",  # Text color
+			font=("Arial", 10),
+		)
+		self.branch_label.grid(column=4, row=0, padx=5, sticky="e")
+
+		# Configure column weights to align labels to the far right
 		navigation_frame.grid_columnconfigure(0, weight=0)
 		navigation_frame.grid_columnconfigure(1, weight=0)
-		navigation_frame.grid_columnconfigure(2, weight=0)
+		navigation_frame.grid_columnconfigure(2, weight=1)  # Allow search status to expand
 		navigation_frame.grid_columnconfigure(3, weight=0)
+		navigation_frame.grid_columnconfigure(4, weight=0)
 
-		# Add an exit button
-		exit_button = ttk.Button(self.tkr, text="Exit", command=self.__exit)
-		exit_button.grid(column=0, row=4, columnspan=3, pady=10)
+		self.__update_status_bar()
 
 		# Start the main loop and execute the command
 		self.tkr.after(0, self.__run(cmd, self.main_text_area))
 		self.tkr.mainloop()
+
+	@beartype
+	def __update_status_bar(self) -> None:
+		"""
+		Update the status bar with the parent folder name and Git branch (if applicable).
+		"""
+		# Get the parent folder name
+		parent_folder = os.path.basename(os.getcwd())
+
+		# Check if the current directory is a Git repository
+		git_branch = ""
+		try:
+			git_branch = subprocess.check_output(
+				["git", "rev-parse", "--abbrev-ref", "HEAD"],
+				stderr=subprocess.DEVNULL,
+				universal_newlines=True,
+			).strip()
+		except (subprocess.CalledProcessError, FileNotFoundError):
+			git_branch = "Not a Git repo"
+
+		# Update the labels
+		self.folder_label.config(text=parent_folder)
+		self.branch_label.config(text=git_branch)
 
 	@beartype
 	def __find(self) -> None:
@@ -136,12 +185,9 @@ class LieutenantTerraform:
 		pattern = self.search_entry.get()
 		self.main_text_area.tag_remove("highlight", "1.0", tk.END)
 		self.main_text_area.tag_remove("current_highlight", "1.0", tk.END)
+
 		self.search_results = []
 		self.current_match_index = -1
-
-		if not pattern:
-			self.search_status.config(text="0/0 matches")
-			return
 
 		try:
 			start = "1.0"
@@ -227,27 +273,19 @@ class LieutenantTerraform:
 			cmd (list): Command to execute.
 			text_area (tk.Text): Text area to display the command output.
 		"""
-		try:
-			with Popen(cmd, stdout=PIPE, bufsize=1, universal_newlines=True) as p:
-				for line in p.stdout:
-					text_area.insert(tk.END, line)
-					self.raw_output += line
-					print(line, end="")
-			if p.returncode != 0:
-				raise CalledProcessError(p.returncode, p.args)
-		except CalledProcessError as e:
-			error_message = f"Error: Command '{e.cmd}' failed with return code {e.returncode}\n"
-			text_area.insert(tk.END, error_message)
-			print(error_message)
-		except FileNotFoundError as e:
-			error_message = f"FileNotFoundError: Command not found - {str(e)}\n"
-			text_area.insert(tk.END, error_message)
-			print(error_message)
-		except PermissionError as e:
-			error_message = f"PermissionError: Permission denied - {str(e)}\n"
-			text_area.insert(tk.END, error_message)
-			print(error_message)
-		except OSError as e:
-			error_message = f"OSError: OS-related error - {str(e)}\n"
-			text_area.insert(tk.END, error_message)
-			print(error_message)
+		def output_callback(line: str) -> None:
+			"""
+			Handle the output of the command by inserting it into the text area.
+
+			Args:
+				line (str): A line of output from the command.
+			"""
+			text_area.insert(tk.END, line)
+			self.raw_output += line
+			print(line, end="")
+
+		def run_pipeline():
+			pipeline = CommandPipeline(cmd, output_callback, config=self.cfg)
+
+		self.thread = threading.Thread(target=run_pipeline, daemon=True)
+		self.thread.start()

@@ -33,14 +33,36 @@ class LieutenantTerraformConfig():
 
 		# Load config defaults
 		self.prefs = {}
-		self.prefs['aliases'] = {}
+		self.prefs['aliases'] = {
+			'fmt': [
+				{'terraform fmt -recursive': "halt"}
+			],
+			'init': [
+				{'terraform init --upgrade': "halt"}
+			],
+			'lint': [
+				{'terraform init --upgrade': "halt"},
+				{'terraform validate': "halt"},
+				{'terraform plan': "continue"},
+				{'terraform fmt -recursive': "halt"}
+			],
+			'plan': [
+				{'terraform validate': "halt"},
+				{'terraform plan': "halt"},
+				{'terraform fmt -recursive': "halt"}
+			],
+			'validate': [
+				{'terraform validate': "halt"}
+			]
+		}
 		self.prefs['cmds'] = {
 			'terraform': 'terraform',
 			'git': 'git'
 			}
 		self.prefs['settings'] = {
+			"Debug": False,
 			"Save window geometry on exit": True,
-			"Window geometry": ""
+			"Window geometry": "754x763"
 		}
 		if self.config_file != "":
 			self.load(self.config_file)
