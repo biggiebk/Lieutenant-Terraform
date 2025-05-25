@@ -114,11 +114,15 @@ class AliasesUI(ChildWindow):
 	@beartype
 	def __delete_alias(self) -> None:
 		"""
-		Delete the selected alias.
+		Delete the selected alias and save changes.
 		"""
 		selected_item = self.tree.selection()
 		if selected_item:
+			alias = self.tree.item(selected_item, "values")[0]
 			self.tree.delete(selected_item)
+			if alias in self.aliases:
+				del self.aliases[alias]
+			self.__save_aliases()
 
 	@beartype
 	def __open_alias_editor(self, values=None) -> None:
