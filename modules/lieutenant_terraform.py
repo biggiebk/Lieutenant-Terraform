@@ -2,17 +2,16 @@
 Description: Main module for LT (Lieutenant Terraform)
 """
 import re
+import subprocess
 import threading
 import tkinter as tk
 from tkinter import ttk
-from subprocess import CalledProcessError
+import os
 from beartype import beartype
 from modules.config import LieutenantTerraformConfig
 from modules.ui.aliases_ui import AliasesUI
 from modules.ui.preferences_ui import PreferencesUI
 from modules.cmd_pipeline import CommandPipeline
-import os
-import subprocess
 
 
 class LieutenantTerraform:
@@ -285,7 +284,7 @@ class LieutenantTerraform:
 			print(line, end="")
 
 		def run_pipeline():
-			pipeline = CommandPipeline(cmd, output_callback, config=self.cfg)
+			CommandPipeline(cmd, output_callback, config=self.cfg)
 
 		self.thread = threading.Thread(target=run_pipeline, daemon=True)
 		self.thread.start()

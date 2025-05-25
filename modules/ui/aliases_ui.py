@@ -14,7 +14,12 @@ class AliasesUI(ChildWindow):
 	"""
 
 	@beartype
-	def __init__(self, cfg: LieutenantTerraformConfig, title: str = "Edit Aliases", geometry: str = "800x600") -> None:
+	def __init__(
+		self,
+		cfg: LieutenantTerraformConfig,
+		title: str = "Edit Aliases",
+		geometry: str = "800x600"
+	) -> None:
 		"""
 		Initialize the edit aliases window.
 
@@ -46,7 +51,10 @@ class AliasesUI(ChildWindow):
 
 		# Populate the treeview with aliases
 		for alias, commands in self.aliases.items():
-			command_list = ", ".join([f"{list(cmd.keys())[0]} ({list(cmd.values())[0]})" for cmd in commands])
+			command_list = ", ".join([
+				f"{list(cmd.keys())[0]} ({list(cmd.values())[0]})"
+				for cmd in commands
+			])
 			self.tree.insert("", tk.END, values=(alias, command_list))
 
 		# Add a scrollbar
@@ -174,19 +182,38 @@ class AliasesUI(ChildWindow):
 				enable_state = enabled_var.get()
 				if command:
 					commands.append({command: enable_state})
-			
+
 			# Update the Treeview with the new or edited alias
 			if values:
 				# Update existing alias
 				selected_item = self.tree.selection()
-				self.tree.item(selected_item, values=(alias, ", ".join([f"{list(cmd.keys())[0]} ({list(cmd.values())[0]})" for cmd in commands])))
+				self.tree.item(
+					selected_item,
+					values=(
+						alias,
+						", ".join([
+							f"{list(cmd.keys())[0]} ({list(cmd.values())[0]})"
+							for cmd in commands
+						])
+					)
+				)
 			else:
 				# Add new alias
-				self.tree.insert("", tk.END, values=(alias, ", ".join([f"{list(cmd.keys())[0]} ({list(cmd.values())[0]})" for cmd in commands])))
-			
+				self.tree.insert(
+					"",
+					tk.END,
+					values=(
+						alias,
+						", ".join([
+							f"{list(cmd.keys())[0]} ({list(cmd.values())[0]})"
+							for cmd in commands
+						])
+					)
+				)
+
 			# Update the internal aliases dictionary
 			self.aliases[alias] = commands
-			
+
 			# Close the editor window
 			editor.destroy()
 
@@ -212,7 +239,13 @@ class AliasesUI(ChildWindow):
 		command_entry = ttk.Entry(row_frame, textvariable=command_var, width=40)
 		command_entry.pack(side=tk.LEFT, padx=5)
 
-		enabled_dropdown = ttk.Combobox(row_frame, textvariable=enabled_var, values=["continue", "halt", "prompt"], state="readonly", width=15)
+		enabled_dropdown = ttk.Combobox(
+			row_frame,
+			textvariable=enabled_var,
+			values=["continue", "halt", "prompt"],
+			state="readonly",
+			width=15
+		)
 		enabled_dropdown.pack(side=tk.LEFT, padx=5)
 
 	@beartype
@@ -243,8 +276,12 @@ class AliasesUI(ChildWindow):
 			for cmd in commands.split(", "):
 				if "(" in cmd and ")" in cmd:
 					command_name, enable_state = cmd.rsplit("(", 1)
-					command_list.append({command_name.strip(): enable_state.strip(")")})
+					command_list.append(
+						{command_name.strip(): enable_state.strip(")")}
+					)
 				else:
-					command_list.append({cmd.strip(): "continue"})  # Default to "continue" if no state is provided
+					command_list.append(
+						{cmd.strip(): "continue"}
+					)  # Default to "continue" if no state is provided
 			new_aliases[alias] = command_list
 		self.cfg.update({"aliases": new_aliases}, save_config=True)
