@@ -3,6 +3,7 @@ Description: Main module for LT (Lieutenant Terraform)
 """
 import re
 import subprocess
+import sys
 import threading
 import tkinter as tk
 from tkinter import ttk
@@ -67,6 +68,28 @@ class LieutenantTerraform:
 		self.main_text_area.grid(column=0, row=0, columnspan=3, sticky="nesw")
 		self.tkr.grid_rowconfigure(0, weight=1)
 		self.tkr.grid_columnconfigure(0, weight=1)
+
+		# Enable copy and paste in the text area
+		def copy(event=None):
+			self.main_text_area.event_generate("<<Copy>>")
+			return "break"
+
+		def paste(event=None):
+			self.main_text_area.event_generate("<<Paste>>")
+			return "break"
+
+		def cut(event=None):
+			self.main_text_area.event_generate("<<Cut>>")
+			return "break"
+
+		if sys.platform == "darwin":  # macOS
+			self.main_text_area.bind("<Command-c>", copy)
+			self.main_text_area.bind("<Command-x>", cut)
+			self.main_text_area.bind("<Command-v>", paste)
+		else:  # Others
+			self.main_text_area.bind("<Control-c>", copy)
+			self.main_text_area.bind("<Control-x>", cut)
+			self.main_text_area.bind("<Control-v>", paste)
 
 		# Configure tags
 		self.main_text_area.tag_configure("cmd", foreground="lightgray", font=("Arial", 10, "bold"))
