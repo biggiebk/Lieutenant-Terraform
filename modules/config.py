@@ -23,13 +23,20 @@ class LieutenantTerraformConfig():
 				3. If config is found loads it
 		"""
 		# Find the config file if there is one.
-		self.config_file = "" # If none empty string
-		if 'LT_CFG' in os.environ: # Check if mentioned in the environment
+		self.config_file = ""  # If none, empty string
+
+		# Check for config file in environment variable
+		if 'LT_CFG' in os.environ:
 			self.config_file = os.environ['LT_CFG']
-		elif os.path.isfile('./.lt_cfg.json'): # Is it in the local directory?
+		# Check for config file in local directory
+		elif os.path.isfile('./.lt_cfg.json'):
 			self.config_file = "./.lt_cfg.json"
-		elif os.path.isfile(f"{os.getenv('HOME')}/.lt_cfg.json"): # Is it in the users home directory?
-			self.config_file = f"{os.getenv('HOME')}/.lt_cfg.json"
+		else:
+			# Check for config file in home directory for macOS and Windows
+			home = os.path.expanduser("~")
+			home_cfg = os.path.join(home, ".lt_cfg.json")
+			if os.path.isfile(home_cfg):
+				self.config_file = home_cfg
 
 		# Load config defaults
 		self.prefs = {}
@@ -58,7 +65,7 @@ class LieutenantTerraformConfig():
 		self.prefs['cmds'] = {
 			'terraform': 'terraform',
 			'git': 'git'
-			}
+		}
 		self.prefs['settings'] = {
 			"Debug": False,
 			"Save window geometry on exit": True,
@@ -99,7 +106,7 @@ class LieutenantTerraformConfig():
 		"""
 		# Use the default file in the user's home directory if no config file is specified
 		if not self.config_file:
-			self.config_file = f"{os.getenv('HOME')}/.lt_cfg.json"
+			self.config_file = os.path.join(os.path.expanduser("~"), ".lt_cfg.json")
 
 		with open(self.config_file, 'w', encoding='utf-8') as cfg:
 			# Exclude the "config_file" key from being saved
