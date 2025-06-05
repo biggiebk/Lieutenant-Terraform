@@ -61,7 +61,7 @@ class CommandPipeline:
 		Returns:
 			bool: True if the command succeeded, False if it failed.
 		"""
-		self.output_callback(f"====={' '.join(cmd)}=====\n", tag="cmd")
+		self.output_callback(f"=====Start {' '.join(cmd)}=====\n", tag="cmd")
 		if cmd[0] in self.cfg.prefs['cmds']:
 			cmd[0] = self.cfg.prefs['cmds'][cmd[0]]
 		try:
@@ -79,6 +79,7 @@ class CommandPipeline:
 					self.output_callback(error_line)
 			if process.returncode != 0:
 				raise CalledProcessError(process.returncode, process.args)
+			self.output_callback(f"=====End {' '.join(cmd)}=====\n", tag="cmd")
 			return True
 		except (CalledProcessError, FileNotFoundError, PermissionError, OSError) as e:
 			if isinstance(e, CalledProcessError):
