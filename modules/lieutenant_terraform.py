@@ -217,6 +217,10 @@ class LieutenantTerraform:
 		self.search_results = []
 		self.current_match_index = -1
 
+		if not pattern:
+			self.__update_search_status()
+			return
+
 		try:
 			start = "1.0"
 			while True:
