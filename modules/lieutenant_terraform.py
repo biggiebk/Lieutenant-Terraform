@@ -313,6 +313,7 @@ class LieutenantTerraform:
 				line (str): A line of output from the command.
 			"""
 			text_area.insert(tk.END, line, tag)
+			text_area.see(tk.END)
 			self.raw_output += line
 			print(line, end="")
 
