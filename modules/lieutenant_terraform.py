@@ -137,6 +137,15 @@ class LieutenantTerraform:
 		self.search_entry.bind("<Return>", lambda e: self.__find())
 		search_frame.grid_columnconfigure(1, weight=1)
 
+		# Add ignore case checkbox
+		self.ignore_case_var = tk.BooleanVar(value=True)
+		ignore_case_checkbox = ttk.Checkbutton(
+			search_frame,
+			text="Ignore Case",
+			variable=self.ignore_case_var
+		)
+		ignore_case_checkbox.grid(column=2, row=0, padx=5)
+
 		# Configure navigation controls for search results
 		navigation_frame = ttk.Frame(self.tkr)
 		navigation_frame.grid(column=0, row=3, columnspan=3, sticky="ew", pady=5)
@@ -222,9 +231,18 @@ class LieutenantTerraform:
 			return
 
 		try:
+			flags = 0
+			if getattr(self, "ignore_case_var", None) and self.ignore_case_var.get():
+				flags = re.IGNORECASE
 			start = "1.0"
 			while True:
-				start = self.main_text_area.search(pattern, start, stopindex=tk.END, regexp=True)
+				start = self.main_text_area.search(
+					pattern,
+					start,
+					stopindex=tk.END,
+					regexp=True,
+					nocase=bool(flags)
+				)
 				if not start:
 					break
 				end = f"{start}+{len(pattern)}c"
