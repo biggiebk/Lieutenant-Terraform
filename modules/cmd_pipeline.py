@@ -104,8 +104,10 @@ class CommandPipeline:
 				error_msg = f"Unknown: error - {str(e)}\n"
 				self.output_callback(error_msg, tag="error")
 			if on_error == "halt":
+				self.output_callback(f"=====End {' '.join(cmd)}=====\n", tag="error")
 				return False
 			elif on_error == "continue":
+				self.output_callback(f"=====End {' '.join(cmd)}=====\n", tag="error")
 				return True
 			elif on_error == "prompt":
 				return self._prompt_error(error_msg, tag="error")
