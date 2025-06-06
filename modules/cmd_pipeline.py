@@ -17,6 +17,7 @@ class CommandPipeline:
 		self,
 		cmd: List[str],
 		output_callback: Callable[[str], None],
+		running_callback: Callable[[str], None],
 		config: LieutenantTerraformConfig
 	) -> None:
 		"""
@@ -29,6 +30,7 @@ class CommandPipeline:
 		"""
 		self.cmd = cmd
 		self.output_callback = output_callback
+		self.running_callback = running_callback
 		self.cfg = config
 		self.process = None
 
@@ -62,6 +64,7 @@ class CommandPipeline:
 		Returns:
 			bool: True if the command succeeded, False if it failed.
 		"""
+		self.running_callback(' '.join(cmd))
 		self.output_callback(f"=====Start {' '.join(cmd)}=====\n", tag="cmd")
 		if cmd[0] in self.cfg.prefs['cmds']:
 			cmd[0] = self.cfg.prefs['cmds'][cmd[0]]

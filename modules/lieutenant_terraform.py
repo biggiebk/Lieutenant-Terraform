@@ -160,6 +160,15 @@ class LieutenantTerraform:
 		self.search_status.grid(column=2, row=0, padx=5, sticky="w")
 
 		# Add folder and branch labels to the navigation frame
+		self.running_label = ttk.Label(
+			navigation_frame,
+			text="",
+			anchor=tk.W,
+			foreground="darkgray",  # Text color
+			font=("Arial", 10),
+		)
+		self.running_label.grid(column=3, row=0, padx=5, sticky="e")
+
 		self.folder_label = ttk.Label(
 			navigation_frame,
 			text="",
@@ -167,7 +176,7 @@ class LieutenantTerraform:
 			foreground="darkgray",  # Text color
 			font=("Arial", 10),
 		)
-		self.folder_label.grid(column=3, row=0, padx=5, sticky="e")
+		self.folder_label.grid(column=4, row=0, padx=5, sticky="e")
 
 		self.branch_label = ttk.Label(
 			navigation_frame,
@@ -176,7 +185,7 @@ class LieutenantTerraform:
 			foreground="darkgray",  # Text color
 			font=("Arial", 10),
 		)
-		self.branch_label.grid(column=4, row=0, padx=5, sticky="e")
+		self.branch_label.grid(column=5, row=0, padx=5, sticky="e")
 
 		# Configure column weights to align labels to the far right
 		navigation_frame.grid_columnconfigure(0, weight=0)
@@ -211,6 +220,7 @@ class LieutenantTerraform:
 			git_branch = "Not a Git repo"
 
 		# Update the labels
+		self.running_label.config(text="")
 		self.folder_label.config(text=parent_folder)
 		self.branch_label.config(text=git_branch)
 
@@ -335,8 +345,19 @@ class LieutenantTerraform:
 			self.raw_output += line
 			print(line, end="")
 
+		def running_callback(command: str) -> None:
+			"""
+			Handle the output of the command by inserting it into the text area.
+
+			Args:
+				line (str): A line of output from the command.
+			"""
+			self.running_label.config(text=command)
+
 		def run_pipeline():
-			CommandPipeline(cmd, output_callback, config=self.cfg)
+			CommandPipeline(cmd, output_callback, running_callback, config=self.cfg)
+			running_callback("")
+
 
 		self.thread = threading.Thread(target=run_pipeline, daemon=True)
 		self.thread.start()
