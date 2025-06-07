@@ -68,6 +68,7 @@ class LieutenantTerraformConfig():
 		}
 		self.prefs['settings'] = {
 			"Debug": False,
+			"Echo": True,
 			"Save window geometry on exit": True,
 			"TF_CLI_ARGS": "-no-color",
 			"Window geometry": "754x763"

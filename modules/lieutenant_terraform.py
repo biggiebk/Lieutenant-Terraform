@@ -343,7 +343,8 @@ class LieutenantTerraform:
 			text_area.insert(tk.END, line, tag)
 			text_area.see(tk.END)
 			self.raw_output += line
-			print(line, end="")
+			if self.cfg.prefs["settings"]["Echo"]:
+				print(line, end="")
 
 		def running_callback(command: str) -> None:
 			"""
