@@ -233,6 +233,8 @@ class LieutenantTerraform:
 		self.main_text_area.tag_remove("highlight", "1.0", tk.END)
 		self.main_text_area.tag_remove("current_highlight", "1.0", tk.END)
 
+		text = self.main_text_area.get("1.0", tk.END)
+		flags = re.IGNORECASE if self.ignore_case_var.get() else 0
 		self.search_results = []
 		self.current_match_index = -1
 
@@ -241,24 +243,11 @@ class LieutenantTerraform:
 			return
 
 		try:
-			flags = 0
-			if getattr(self, "ignore_case_var", None) and self.ignore_case_var.get():
-				flags = re.IGNORECASE
-			start = "1.0"
-			while True:
-				start = self.main_text_area.search(
-					pattern,
-					start,
-					stopindex=tk.END,
-					regexp=True,
-					nocase=bool(flags)
-				)
-				if not start:
-					break
-				end = f"{start}+{len(pattern)}c"
-				self.search_results.append((start, end))
-				self.main_text_area.tag_add("highlight", start, end)
-				start = end
+			for match in re.finditer(pattern, text, flags):
+				start_idx = f"1.0 + {match.start()}c"
+				end_idx = f"1.0 + {match.end()}c"
+				self.search_results.append((start_idx, end_idx))
+				self.main_text_area.tag_add("highlight", start_idx, end_idx)
 			self.main_text_area.tag_config("highlight", background="yellow", foreground="black")
 			self.__next_match()
 			self.__update_search_status()
