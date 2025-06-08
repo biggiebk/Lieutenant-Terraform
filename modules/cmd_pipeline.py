@@ -1,3 +1,6 @@
+"""
+Description: CommandPipeline class for executing shell commands with output handling.
+"""
 import re
 import sys
 from subprocess import Popen, PIPE, CalledProcessError
@@ -113,12 +116,12 @@ class CommandPipeline:
 				self.output_callback(f"=====End {' '.join(cmd)}=====\n", tag="error")
 				return True
 			elif on_error == "prompt":
-				return self._prompt_error(error_msg, tag="error")
+				return self._prompt_error(error_msg)
 			self.output_callback(f"=====End {' '.join(cmd)}=====\n", tag="error")
 			return False
 
 	@beartype
-	def _prompt_error(self, error_msg: str, tag: str = None) -> bool:
+	def _prompt_error(self, error_msg: str) -> bool:
 		"""
 		Display a Tkinter window to prompt the user to halt or continue.
 		Returns True if continue, False if halt.
