@@ -80,7 +80,7 @@ class LieutenantTerraformConfig():
 			},
 			"good": {
 				"color": "green",
-				"patterns": ["success"]
+				"patterns": ["success", "successful"]
 			},
 			"warn": {
 				"color": "orange",
@@ -107,6 +107,8 @@ class LieutenantTerraformConfig():
 			self.prefs['cmds'].update(cfg['cmds'])
 		if 'aliases' in cfg:
 			self.prefs['aliases'].update(cfg['aliases'])
+		if 'tags' in cfg:
+			self.prefs['tags'].update(cfg['tags'])
 		self.prefs["config_file"] = self.config_file
 		self.prefs.update()
 		self.set_env()  # Set environment variables based on the loaded config

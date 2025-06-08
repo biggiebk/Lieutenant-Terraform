@@ -12,6 +12,7 @@ from beartype import beartype
 from modules.config import LieutenantTerraformConfig
 from modules.ui.aliases_ui import AliasesUI
 from modules.ui.preferences_ui import PreferencesUI
+from modules.ui.tags_ui import TagsUI
 from modules.cmd_pipeline import CommandPipeline
 
 
@@ -61,6 +62,7 @@ class LieutenantTerraform:
 		preferences.add_command(label="Settings", command=lambda: PreferencesUI(self.cfg, "settings"))
 		preferences.add_command(label="Commands", command=lambda: PreferencesUI(self.cfg, "cmds"))
 		preferences.add_command(label="Aliases", command=lambda: AliasesUI(self.cfg))
+		preferences.add_command(label="Tags", command=lambda: TagsUI(self.cfg, parent=self.tkr))
 		self.tkr.configure(menu=menubar)
 
 		# Configure the text area for displaying output
