@@ -73,6 +73,20 @@ class LieutenantTerraformConfig():
 			"TF_CLI_ARGS": "-no-color",
 			"Window geometry": "754x763"
 		}
+		self.prefs['tags'] = {
+			"error": {
+				"color": "red",
+				"patterns": ["error", "failed", "failure", "invalid"]
+			},
+			"good": {
+				"color": "green",
+				"patterns": ["success"]
+			},
+			"warn": {
+				"color": "orange",
+				"patterns": ["warning"]
+			}
+		}
 		if self.config_file != "":
 			self.load(self.config_file)
 

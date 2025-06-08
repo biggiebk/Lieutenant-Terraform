@@ -94,8 +94,8 @@ class LieutenantTerraform:
 		# Configure tags
 		self.main_text_area.tag_configure("cmd", foreground="lightgray", font=("Arial", 10, "bold"))
 		self.main_text_area.tag_configure("error", foreground="red")
-		self.main_text_area.tag_configure("success", foreground="green")
-		self.main_text_area.tag_configure("warn", foreground="yellow")
+		self.main_text_area.tag_configure("good", foreground="green")
+		self.main_text_area.tag_configure("warn", foreground="orange")
 
 		# Configure scrollbars for the text area
 		style = ttk.Style()
@@ -329,7 +329,17 @@ class LieutenantTerraform:
 			Args:
 				line (str): A line of output from the command.
 			"""
-			text_area.insert(tk.END, line, tag)
+			applied_tag = tag
+			# Only perform the search if a tag is not already applied
+			if not tag and "tags" in self.cfg.prefs:
+				for tag_name, tag_info in self.cfg.prefs["tags"].items():
+					for pattern in tag_info.get("patterns", []):
+						if pattern.lower() in line.lower():
+							applied_tag = tag_name
+							break
+					if applied_tag:
+						break
+			text_area.insert(tk.END, line, applied_tag)
 			text_area.see(tk.END)
 			self.raw_output += line
 			if self.cfg.prefs["settings"]["Echo"]:
