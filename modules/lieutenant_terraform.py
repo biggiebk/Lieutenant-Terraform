@@ -63,10 +63,27 @@ class LieutenantTerraform:
 		preferences.add_command(label="Commands", command=lambda: PreferencesUI(self.cfg, "cmds"))
 		preferences.add_command(label="Aliases", command=lambda: AliasesUI(self.cfg))
 		preferences.add_command(label="Tags", command=lambda: TagsUI(self.cfg, parent=self.tkr))
+
+		# Add word wrap toggle to the menu bar
+		self.word_wrap_var = tk.BooleanVar(value=False)
+		view_menu = tk.Menu(menubar, tearoff=0)
+		view_menu.add_checkbutton(
+			label="Word Wrap",
+			variable=self.word_wrap_var,
+			command=self.__toggle_word_wrap
+		)
+		menubar.add_cascade(label="View", menu=view_menu)
+
 		self.tkr.configure(menu=menubar)
 
 		# Configure the text area for displaying output
-		self.main_text_area = tk.Text(self.tkr, wrap=tk.NONE)
+		self.main_text_area = tk.Text(
+			self.tkr,
+			wrap=tk.NONE,
+			highlightthickness=0,  # Remove white border when selected
+			bd=0,  # Remove border
+			relief="flat"  # Flat appearance
+		)
 		self.main_text_area.grid(column=0, row=0, columnspan=3, sticky="nesw")
 		self.tkr.grid_rowconfigure(0, weight=1)
 		self.tkr.grid_columnconfigure(0, weight=1)
@@ -166,7 +183,7 @@ class LieutenantTerraform:
 			navigation_frame,
 			text="",
 			anchor=tk.W,
-			foreground="darkgray",  # Text color
+			foreground="darkgray",
 			font=("Arial", 10),
 		)
 		self.running_label.grid(column=3, row=0, padx=5, sticky="e")
@@ -175,7 +192,7 @@ class LieutenantTerraform:
 			navigation_frame,
 			text="",
 			anchor=tk.W,
-			foreground="darkgray",  # Text color
+			foreground="darkgray",
 			font=("Arial", 10),
 		)
 		self.folder_label.grid(column=4, row=0, padx=5, sticky="e")
@@ -184,7 +201,7 @@ class LieutenantTerraform:
 			navigation_frame,
 			text="",
 			anchor=tk.W,
-			foreground="darkgray",  # Text color
+			foreground="darkgray",
 			font=("Arial", 10),
 		)
 		self.branch_label.grid(column=5, row=0, padx=5, sticky="e")
@@ -192,7 +209,7 @@ class LieutenantTerraform:
 		# Configure column weights to align labels to the far right
 		navigation_frame.grid_columnconfigure(0, weight=0)
 		navigation_frame.grid_columnconfigure(1, weight=0)
-		navigation_frame.grid_columnconfigure(2, weight=1)  # Allow search status to expand
+		navigation_frame.grid_columnconfigure(2, weight=1)
 		navigation_frame.grid_columnconfigure(3, weight=0)
 		navigation_frame.grid_columnconfigure(4, weight=0)
 
@@ -286,7 +303,7 @@ class LieutenantTerraform:
 		start, end = self.search_results[self.current_match_index]
 		self.main_text_area.tag_remove("current_highlight", "1.0", tk.END)
 		self.main_text_area.tag_add("current_highlight", start, end)
-		self.main_text_area.tag_config("current_highlight", background="orange", foreground="black")
+		self.main_text_area.tag_config("current_highlight", background="orange", foreground="black", selectbackground="orange", selectforeground="black")
 		self.main_text_area.see(start)
 		self.__update_search_status()
 
@@ -363,3 +380,13 @@ class LieutenantTerraform:
 
 		self.thread = threading.Thread(target=run_pipeline, daemon=True)
 		self.thread.start()
+
+	@beartype
+	def __toggle_word_wrap(self) -> None:
+		"""
+		Toggle word wrap in the main text area.
+		"""
+		if self.word_wrap_var.get():
+			self.main_text_area.config(wrap=tk.WORD)
+		else:
+			self.main_text_area.config(wrap=tk.NONE)
