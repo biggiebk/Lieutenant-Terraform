@@ -114,6 +114,7 @@ class LieutenantTerraform:
 		self.main_text_area.tag_configure("cmd", foreground="lightgray", font=("Arial", 10, "bold"))
 		self.main_text_area.tag_configure("error", foreground="red")
 		self.main_text_area.tag_configure("good", foreground="green")
+		self.main_text_area.tag_configure("info", foreground="blue")
 		self.main_text_area.tag_configure("warn", foreground="orange")
 
 		# Configure scrollbars for the text area
@@ -353,9 +354,12 @@ class LieutenantTerraform:
 			if not tag and "tags" in self.cfg.prefs:
 				for tag_name, tag_info in self.cfg.prefs["tags"].items():
 					for pattern in tag_info.get("patterns", []):
-						if pattern.lower() in line.lower():
-							applied_tag = tag_name
-							break
+						try:
+							if re.search(pattern, line, re.IGNORECASE):
+								applied_tag = tag_name
+								break
+						except re.error:
+							continue
 					if applied_tag:
 						break
 			text_area.insert(tk.END, line, applied_tag)
