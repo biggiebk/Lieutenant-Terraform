@@ -19,6 +19,7 @@ class CommandPipeline:
 	def __init__(
 		self,
 		cmd: List[str],
+		exit_callback: Callable[[str], None],
 		output_callback: Callable[[str], None],
 		running_callback: Callable[[str], None],
 		config: LieutenantTerraformConfig
@@ -32,6 +33,7 @@ class CommandPipeline:
 			config (LieutenantTerraformConfig): Configuration object for the pipeline.
 		"""
 		self.cmd = cmd
+		self.exit_callback = exit_callback
 		self.output_callback = output_callback
 		self.running_callback = running_callback
 		self.cfg = config
@@ -140,7 +142,7 @@ class CommandPipeline:
 		"""
 		Run the command pipeline.
 		"""
-		for cmd in self.cfg.prefs['aliases'][alias]:
+		for cmd in self.cfg.prefs['aliases'][alias]["pipeline"]:
 			success = self.run(
 				re.split(r'\s+', list(cmd)[0]),
 				list(cmd.values())[0]
@@ -148,6 +150,8 @@ class CommandPipeline:
 			if not success:
 				print(f"Alias '{alias}' failed to execute: {cmd}")
 				return
+		if self.cfg.prefs['aliases'][alias]["exit_on_done"]:
+			self.exit_callback()
 
 	def terminate(self):
 		"""

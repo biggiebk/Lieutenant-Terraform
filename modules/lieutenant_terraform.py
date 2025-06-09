@@ -378,7 +378,7 @@ class LieutenantTerraform:
 			self.running_label.config(text=command)
 
 		def run_pipeline():
-			CommandPipeline(cmd, output_callback, running_callback, config=self.cfg)
+			CommandPipeline(cmd, self.__exit, output_callback, running_callback, config=self.cfg)
 			running_callback("")
 
 

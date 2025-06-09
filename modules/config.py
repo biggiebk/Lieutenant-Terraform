@@ -41,26 +41,41 @@ class LieutenantTerraformConfig():
 		# Load config defaults
 		self.prefs = {}
 		self.prefs['aliases'] = {
-			'fmt': [
-				{'terraform fmt -recursive': "halt"}
-			],
-			'init': [
-				{'terraform init --upgrade': "halt"}
-			],
-			'lint': [
-				{'terraform init --upgrade': "halt"},
-				{'terraform validate': "halt"},
-				{'terraform plan': "continue"},
-				{'terraform fmt -recursive': "halt"}
-			],
-			'plan': [
-				{'terraform validate': "halt"},
-				{'terraform plan': "halt"},
-				{'terraform fmt -recursive': "halt"}
-			],
-			'validate': [
-				{'terraform validate': "halt"}
-			]
+			'fmt': {
+				"exit_on_done": False,
+				"pipeline": [
+					{'terraform fmt -recursive': "halt"}
+				]
+			},
+			'init': {
+				"exit_on_done": False,
+				"pipeline": [
+					{'terraform init --upgrade': "halt"}
+				]
+			},
+			'lint': {
+				"exit_on_done": False,
+				"pipeline": [
+					{'terraform init --upgrade': "halt"},
+					{'terraform validate': "halt"},
+					{'terraform plan': "continue"},
+					{'terraform fmt -recursive': "halt"}
+				]
+			},
+			'plan':  {
+				"exit_on_done": False,
+				"pipeline": [
+					{'terraform validate': "halt"},
+					{'terraform plan': "halt"},
+					{'terraform fmt -recursive': "halt"}
+				]
+			},
+			'validate':  {
+				"exit_on_done": False,
+				"pipeline": [
+					{'terraform validate': "halt"}
+				]
+			}
 		}
 		self.prefs['cmds'] = {
 			'terraform': 'terraform',
