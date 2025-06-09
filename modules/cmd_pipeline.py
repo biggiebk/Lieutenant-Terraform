@@ -83,7 +83,7 @@ class CommandPipeline:
 				for line in process.stdout:
 					self.output_callback(line)
 				for error_line in process.stderr:
-					self.output_callback("ERROR: ", "error")
+					self.output_callback("ERROR: ", tag="critical")
 					self.output_callback(error_line)
 			if self.process and self.process.returncode is None:
 				self.process.terminate()
@@ -96,28 +96,28 @@ class CommandPipeline:
 				error_msg = (
 					f"CommandError '{' '.join(e.cmd)}' failed with return code {e.returncode}\n"
 				)
-				self.output_callback(error_msg, tag="error")
+				self.output_callback(error_msg, tag="critical")
 			elif isinstance(e, FileNotFoundError):
 				error_msg = f"FileNotFoundError: Command not found - {str(e)}\n"
-				self.output_callback(error_msg, tag="error")
+				self.output_callback(error_msg, tag="critical")
 			elif isinstance(e, PermissionError):
 				error_msg = f"PermissionError: Permission denied - {str(e)}\n"
-				self.output_callback(error_msg, tag="error")
+				self.output_callback(error_msg, tag="critical")
 			elif isinstance(e, OSError):
 				error_msg = f"OSError: OS-related error - {str(e)}\n"
-				self.output_callback(error_msg, tag="error")
+				self.output_callback(error_msg, tag="critical")
 			else:
 				error_msg = f"Unknown: error - {str(e)}\n"
-				self.output_callback(error_msg, tag="error")
+				self.output_callback(error_msg, tag="critical")
 			if on_error == "halt":
-				self.output_callback(f"=====End {' '.join(cmd)}=====\n", tag="error")
+				self.output_callback(f"=====End {' '.join(cmd)}=====\n", tag="critical")
 				return False
 			elif on_error == "continue":
-				self.output_callback(f"=====End {' '.join(cmd)}=====\n", tag="error")
+				self.output_callback(f"=====End {' '.join(cmd)}=====\n", tag="critical")
 				return True
 			elif on_error == "prompt":
 				return self._prompt_error(error_msg)
-			self.output_callback(f"=====End {' '.join(cmd)}=====\n", tag="error")
+			self.output_callback(f"=====End {' '.join(cmd)}=====\n", tag="critical")
 			return False
 
 	@beartype

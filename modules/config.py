@@ -74,13 +74,13 @@ class LieutenantTerraformConfig():
 			"Window geometry": "754x763"
 		}
 		self.prefs['tags'] = {
-			"error": {
+			"critical": {
 				"color": "red",
 				"patterns": ["error", "failed", "failure", "invalid", "\s-\s"]
 			},
 			"good": {
 				"color": "green",
-				"patterns": ["success", "successful", "\s+\s"]
+				"patterns": ["success", "successful", "\s\+\s"]
 			},
 			"info": {
 				"color": "blue",

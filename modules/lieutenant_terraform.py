@@ -112,7 +112,7 @@ class LieutenantTerraform:
 
 		# Configure tags
 		self.main_text_area.tag_configure("cmd", foreground="lightgray", font=("Arial", 10, "bold"))
-		self.main_text_area.tag_configure("error", foreground="red")
+		self.main_text_area.tag_configure("critical", foreground="red")
 		self.main_text_area.tag_configure("good", foreground="green")
 		self.main_text_area.tag_configure("info", foreground="blue")
 		self.main_text_area.tag_configure("warn", foreground="orange")
