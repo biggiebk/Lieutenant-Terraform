@@ -74,6 +74,19 @@ class LieutenantTerraform:
 		)
 		menubar.add_cascade(label="View", menu=view_menu)
 
+		# Add Run drop down menu for aliases
+		run_menu = tk.Menu(menubar, tearoff=0)
+		self.run_alias_var = tk.StringVar()
+		alias_names = list(self.cfg.prefs.get("aliases", {}).keys())
+		for alias in alias_names:
+			run_menu.add_radiobutton(
+				label=alias,
+				variable=self.run_alias_var,
+				value=alias,
+				command=lambda: self.__run_selected_alias()
+			)
+		menubar.add_cascade(label="Run", menu=run_menu)
+
 		self.tkr.configure(menu=menubar)
 
 		# Configure the text area for displaying output
@@ -394,3 +407,12 @@ class LieutenantTerraform:
 			self.main_text_area.config(wrap=tk.WORD)
 		else:
 			self.main_text_area.config(wrap=tk.NONE)
+
+	def __run_selected_alias(self):
+		"""
+		Clear the main text area and run the selected alias from the Run menu.
+		"""
+		alias = self.run_alias_var.get()
+		if alias:
+			self.main_text_area.delete("1.0", tk.END)
+			self.__run([alias], self.main_text_area)
