@@ -91,11 +91,11 @@ class LieutenantTerraformConfig():
 		self.prefs['tags'] = {
 			"critical": {
 				"color": "red",
-				"patterns": ["error", "failed", "failure", "invalid", "\s-\s"]
+				"patterns": ["error", "failed", "failure", "invalid", "\s\s-\s", "result:\sfalse",]
 			},
 			"good": {
 				"color": "green",
-				"patterns": ["success", "successful", "\s\+\s"]
+				"patterns": ["success", "successful", "\s\s\+\s"]
 			},
 			"info": {
 				"color": "blue",
@@ -103,7 +103,7 @@ class LieutenantTerraformConfig():
 			},
 			"warn": {
 				"color": "orange",
-				"patterns": ["warning", "warn", "\s~\s"]
+				"patterns": ["warning", "warn", "\s\s~\s"]
 			}
 		}
 		if self.config_file != "":
