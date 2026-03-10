@@ -40,6 +40,7 @@ class ChildWindow(ReusableWidgetMixin, tk.Toplevel):
 		self.configure_theme(self)
 		self.title(title)
 		self.geometry(geometry)
+		self.position_window_below_cursor(self)
 		self.resizable(True, True)
 		self.apply_native_window_theme(self)
 		if self.use_custom_windows_chrome():
@@ -91,6 +92,7 @@ class ChildWindow(ReusableWidgetMixin, tk.Toplevel):
 		self.configure_theme(dialog)
 		dialog.title(title)
 		dialog.geometry(geometry)
+		self.position_window_below_cursor(dialog)
 		dialog.transient(self)
 		dialog.grab_set()
 		self.apply_native_window_theme(dialog)

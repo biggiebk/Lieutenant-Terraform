@@ -24,6 +24,8 @@ class ReusableWidgetMixin:
 	WINDOWS_TEXT_COLOR_ATTRIBUTE_ID = 36
 	WINDOW_MIN_WIDTH = 320
 	WINDOW_MIN_HEIGHT = 220
+	CURSOR_WINDOW_OFFSET_Y = 16
+	WINDOW_SCREEN_MARGIN = 12
 
 	def _resolve_master(self, master: tk.Misc | None) -> tk.Misc:
 		"""
@@ -202,6 +204,29 @@ class ReusableWidgetMixin:
 		Return whether Windows should use custom in-app chrome.
 		"""
 		return sys.platform == "win32"
+
+	def position_window_below_cursor(self, window: tk.Tk | tk.Toplevel, offset_y: int | None = None) -> None:
+		"""
+		Center a window below the current mouse cursor while keeping it on screen.
+		"""
+		window.update_idletasks()
+		width = window.winfo_width() or window.winfo_reqwidth()
+		height = window.winfo_height() or window.winfo_reqheight()
+		pointer_x = window.winfo_pointerx()
+		pointer_y = window.winfo_pointery()
+		offset = self.CURSOR_WINDOW_OFFSET_Y if offset_y is None else offset_y
+		screen_width = window.winfo_screenwidth()
+		screen_height = window.winfo_screenheight()
+
+		x_pos = pointer_x - (width // 2)
+		y_pos = pointer_y + offset
+
+		max_x = max(self.WINDOW_SCREEN_MARGIN, screen_width - width - self.WINDOW_SCREEN_MARGIN)
+		max_y = max(self.WINDOW_SCREEN_MARGIN, screen_height - height - self.WINDOW_SCREEN_MARGIN)
+		x_pos = min(max(self.WINDOW_SCREEN_MARGIN, x_pos), max_x)
+		y_pos = min(max(self.WINDOW_SCREEN_MARGIN, y_pos), max_y)
+
+		window.geometry(f"{width}x{height}+{x_pos}+{y_pos}")
 
 	def create_plain_frame(self, master: tk.Misc, **kwargs) -> tk.Frame:
 		"""
@@ -497,6 +522,7 @@ class ReusableWidgetMixin:
 		popup.title(title)
 		popup.geometry(geometry)
 		popup.transient(parent)
+		self.position_window_below_cursor(popup)
 		if always_on_top:
 			popup.attributes("-topmost", True)
 
