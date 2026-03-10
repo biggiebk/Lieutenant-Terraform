@@ -43,6 +43,7 @@ class LieutenantTerraform(ReusableWidgetMixin):
 		# Search-related variables
 		self.search_results = []
 		self.current_match_index = -1
+		self.tag_item_lines = {}
 
 		# Load the main UI
 		self.__load_main(arguments)
@@ -119,10 +120,10 @@ class LieutenantTerraform(ReusableWidgetMixin):
 		tag_columns = (
 			("Tag", "Tag", 100, tk.W),
 			("Pattern", "Pattern", 200, tk.W),
-			("Line", "Line", 60, tk.CENTER),
 		)
 		tag_frame, self.tag_patterns_tree = self.create_treeview(tag_columns, master=tag_sidebar)
 		tag_frame.pack(fill=tk.BOTH, expand=True, padx=(5, 0), pady=2)
+		self.tag_patterns_tree.bind("<<TreeviewSelect>>", self.__on_tag_pattern_selected)
 
 		# Enable copy and paste in the text area
 		def copy(event=None):
@@ -331,6 +332,42 @@ class LieutenantTerraform(ReusableWidgetMixin):
 		self.__update_search_status()
 
 	@beartype
+	def __on_tag_pattern_selected(self, _event) -> None:
+		"""
+		Use the selected tag sidebar pattern as the current search.
+		"""
+		selected_item = self.tag_patterns_tree.selection()
+		if not selected_item:
+			return
+
+		item_id = selected_item[0]
+		_tag_name, pattern = self.tag_patterns_tree.item(item_id, "values")
+		self.search_entry.delete(0, tk.END)
+		self.search_entry.insert(0, pattern)
+		self.__find()
+		self.__focus_match_for_line(self.tag_item_lines.get(item_id))
+
+	@beartype
+	def __focus_match_for_line(self, line_number) -> None:
+		"""
+		Focus the search result that corresponds to a selected tag row line.
+		"""
+		if not self.search_results:
+			return
+
+		try:
+			target_line = int(line_number)
+		except (TypeError, ValueError):
+			return
+
+		for index, (start, _end) in enumerate(self.search_results):
+			result_line = int(self.main_text_area.index(start).split(".")[0])
+			if result_line == target_line:
+				self.current_match_index = index
+				self.__highlight_current_match()
+				break
+
+	@beartype
 	def __update_search_status(self) -> None:
 		"""
 		Update the search status label with the current match index and total matches.
@@ -382,10 +419,11 @@ class LieutenantTerraform(ReusableWidgetMixin):
 								applied_tag = tag_name
 								# Insert into the tag_patterns_tree
 								line_number = int(float(text_area.index(tk.END))) - 1
-								self.tag_patterns_tree.insert(
+								item_id = self.tag_patterns_tree.insert(
 									"", tk.END,
-									values=(tag_name, pattern, line_number)
+									values=(tag_name, pattern)
 								)
+								self.tag_item_lines[item_id] = line_number
 								break
 						except re.error:
 							continue
@@ -408,6 +446,7 @@ class LieutenantTerraform(ReusableWidgetMixin):
 
 		def run_pipeline():
 			# Clear the tag_patterns_tree before each run
+			self.tag_item_lines = {}
 			for item in self.tag_patterns_tree.get_children():
 				self.tag_patterns_tree.delete(item)
 			pipeline = CommandPipeline(cmd, self.__exit, output_callback, running_callback, config=self.cfg)
