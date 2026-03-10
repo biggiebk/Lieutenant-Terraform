@@ -11,7 +11,7 @@ class ReusableWidgetMixin:
 	Mixin providing reusable Tkinter and ttk widget helpers.
 	"""
 
-	THEME_BACKGROUND = "#172024"
+	THEME_BACKGROUND = "#141414"
 	THEME_FOREGROUND = "#c0effe"
 	THEME_SURFACE = "#223038"
 	THEME_ACTIVE = "#2b3d45"
@@ -49,6 +49,8 @@ class ReusableWidgetMixin:
 		widget.option_add("*Menu.foreground", self.THEME_FOREGROUND)
 		widget.option_add("*Menu.activeBackground", self.THEME_ACTIVE)
 		widget.option_add("*Menu.activeForeground", self.THEME_FOREGROUND)
+		widget.option_add("*Menu.selectColor", self.THEME_FOREGROUND)
+		widget.option_add("*Menu.disabledForeground", self.THEME_BORDER)
 		widget.option_add("*Menu.relief", "flat")
 
 		style.configure(
@@ -66,7 +68,7 @@ class ReusableWidgetMixin:
 		style.configure("TLabel", background=self.THEME_BACKGROUND, foreground=self.THEME_FOREGROUND)
 		style.configure(
 			"TButton",
-			background=self.THEME_SURFACE,
+			background=self.THEME_BACKGROUND,
 			foreground=self.THEME_FOREGROUND,
 			bordercolor=self.THEME_BORDER,
 			focuscolor=self.THEME_BORDER,
@@ -79,22 +81,22 @@ class ReusableWidgetMixin:
 		)
 		style.configure(
 			"TEntry",
-			fieldbackground=self.THEME_SURFACE,
+			fieldbackground=self.THEME_BACKGROUND,
 			foreground=self.THEME_FOREGROUND,
 			insertcolor=self.THEME_FOREGROUND,
 			bordercolor=self.THEME_BORDER,
 		)
 		style.configure(
 			"TCombobox",
-			fieldbackground=self.THEME_SURFACE,
+			fieldbackground=self.THEME_BACKGROUND,
 			foreground=self.THEME_FOREGROUND,
-			background=self.THEME_SURFACE,
+			background=self.THEME_BACKGROUND,
 			arrowcolor=self.THEME_FOREGROUND,
 			bordercolor=self.THEME_BORDER,
 		)
 		style.map(
 			"TCombobox",
-			fieldbackground=[("readonly", self.THEME_SURFACE)],
+			fieldbackground=[("readonly", self.THEME_BACKGROUND)],
 			selectbackground=[("readonly", self.THEME_SELECTION)],
 			selectforeground=[("readonly", self.THEME_FOREGROUND)],
 		)
@@ -136,14 +138,14 @@ class ReusableWidgetMixin:
 		style = style or ttk.Style()
 		style.configure(
 			"Vertical.TScrollbar",
-			background=self.THEME_SURFACE,
+			background=self.THEME_BACKGROUND,
 			troughcolor=self.THEME_BACKGROUND,
 			bordercolor=self.THEME_BORDER,
 			arrowcolor=self.THEME_FOREGROUND,
 		)
 		style.configure(
 			"Horizontal.TScrollbar",
-			background=self.THEME_SURFACE,
+			background=self.THEME_BACKGROUND,
 			troughcolor=self.THEME_BACKGROUND,
 			bordercolor=self.THEME_BORDER,
 			arrowcolor=self.THEME_FOREGROUND,
@@ -167,6 +169,9 @@ class ReusableWidgetMixin:
 			"fg": self.THEME_FOREGROUND,
 			"activebackground": self.THEME_ACTIVE,
 			"activeforeground": self.THEME_FOREGROUND,
+			"disabledforeground": self.THEME_BORDER,
+			"selectcolor": self.THEME_FOREGROUND,
+			"activeborderwidth": 0,
 			"relief": tk.FLAT,
 			"bd": 0,
 		}

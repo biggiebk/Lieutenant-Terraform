@@ -6,6 +6,7 @@ import subprocess
 import sys
 import threading
 import tkinter as tk
+from tkinter import ttk
 import os
 from beartype import beartype
 from modules.config import LieutenantTerraformConfig
@@ -122,7 +123,9 @@ class LieutenantTerraform(ReusableWidgetMixin):
 			("Tag", "Tag", 100, tk.W),
 			("Pattern", "Pattern", 200, tk.W),
 		)
+		self.__configure_tag_sidebar_style()
 		tag_frame, self.tag_patterns_tree = self.create_treeview(tag_columns, master=tag_sidebar)
+		self.tag_patterns_tree.configure(style="TagSidebar.Treeview")
 		tag_frame.pack(fill=tk.BOTH, expand=True, padx=(5, 0), pady=2)
 		self.tag_patterns_tree.bind("<<TreeviewSelect>>", self.__on_tag_pattern_selected)
 
@@ -243,6 +246,35 @@ class LieutenantTerraform(ReusableWidgetMixin):
 		# Start the main loop and execute the command
 		self.tkr.after(0, self.__run(cmd, self.main_text_area))
 		self.tkr.mainloop()
+
+	def __configure_tag_sidebar_style(self) -> None:
+		"""
+		Configure a dedicated style for the tag sidebar treeview.
+		"""
+		style = ttk.Style(self.tkr)
+		style.configure(
+			"TagSidebar.Treeview",
+			background=self.THEME_BACKGROUND,
+			fieldbackground=self.THEME_BACKGROUND,
+			foreground=self.THEME_FOREGROUND,
+			bordercolor=self.THEME_BORDER,
+		)
+		style.map(
+			"TagSidebar.Treeview",
+			background=[("selected", self.THEME_SELECTION)],
+			foreground=[("selected", self.THEME_FOREGROUND)],
+		)
+		style.configure(
+			"TagSidebar.Treeview.Heading",
+			background=self.THEME_BACKGROUND,
+			foreground=self.THEME_FOREGROUND,
+			bordercolor=self.THEME_BORDER,
+		)
+		style.map(
+			"TagSidebar.Treeview.Heading",
+			background=[("active", self.THEME_BACKGROUND)],
+			foreground=[("active", self.THEME_FOREGROUND)],
+		)
 
 	@beartype
 	def __update_status_bar(self) -> None:
