@@ -10,6 +10,7 @@ from tkinter import ttk
 import os
 from beartype import beartype
 from modules.config import LieutenantTerraformConfig
+from modules.ui.highlights_ui import HighlightsUI
 from modules.ui.aliases_ui import AliasesUI
 from modules.ui.preferences_ui import PreferencesUI
 from modules.ui.tags_ui import TagsUI
@@ -46,9 +47,9 @@ class LieutenantTerraform(ReusableWidgetMixin):
 		# Search-related variables
 		self.search_results = []
 		self.current_match_index = -1
-		self.tag_item_lines = {}
-		self.tag_pattern_items = {}
-		self.tag_pattern_counts = {}
+		self.match_item_lines = {}
+		self.match_pattern_items = {}
+		self.match_pattern_counts = {}
 
 		# Load the main UI
 		self.__load_main(arguments)
@@ -89,6 +90,7 @@ class LieutenantTerraform(ReusableWidgetMixin):
 		preferences.add_command(label="Settings", command=lambda: PreferencesUI(self.cfg, "settings"))
 		preferences.add_command(label="Commands", command=lambda: PreferencesUI(self.cfg, "cmds"))
 		preferences.add_command(label="Aliases", command=lambda: AliasesUI(self.cfg))
+		preferences.add_command(label="Highlights", command=lambda: HighlightsUI(self.cfg, parent=self.tkr))
 		preferences.add_command(label="Tags", command=lambda: TagsUI(self.cfg, parent=self.tkr))
 
 		self.word_wrap_var = tk.BooleanVar(value=False)
@@ -131,8 +133,8 @@ class LieutenantTerraform(ReusableWidgetMixin):
 		output_frame.grid_columnconfigure(0, weight=1)
 		main_pane.add(output_frame, stretch="always", minsize=400)
 
-		tag_sidebar = self.create_frame(main_pane)
-		main_pane.add(tag_sidebar, minsize=180)
+		match_sidebar = self.create_frame(main_pane)
+		main_pane.add(match_sidebar, minsize=180)
 
 		# Configure the text area for displaying output
 		self.main_text_area = self.create_text_widget(
@@ -145,16 +147,16 @@ class LieutenantTerraform(ReusableWidgetMixin):
 		self.main_text_area.grid(column=0, row=0, sticky="nsew")
 
 		# Treeview for displaying matching tag patterns, to the right of main_text_area
-		tag_columns = (
+		match_columns = (
 			("Tag", "Tag", 100, tk.W),
 			("Pattern", "Pattern", 180, tk.W),
 			("Count", "Count", 60, tk.CENTER),
 		)
-		self.__configure_tag_sidebar_style()
-		tag_frame, self.tag_patterns_tree = self.create_treeview(tag_columns, master=tag_sidebar)
-		self.tag_patterns_tree.configure(style="TagSidebar.Treeview")
-		tag_frame.pack(fill=tk.BOTH, expand=True, padx=(5, 0), pady=2)
-		self.tag_patterns_tree.bind("<<TreeviewSelect>>", self.__on_tag_pattern_selected)
+		self.__configure_match_sidebar_style()
+		match_frame, self.match_patterns_tree = self.create_treeview(match_columns, master=match_sidebar)
+		self.match_patterns_tree.configure(style="TagSidebar.Treeview")
+		match_frame.pack(fill=tk.BOTH, expand=True, padx=(5, 0), pady=2)
+		self.match_patterns_tree.bind("<<TreeviewSelect>>", self.__on_pattern_selected)
 
 		# Enable copy and paste in the text area
 		def copy(event=None):
@@ -178,12 +180,8 @@ class LieutenantTerraform(ReusableWidgetMixin):
 			self.main_text_area.bind("<Control-x>", cut)
 			self.main_text_area.bind("<Control-v>", paste)
 
-		# Configure tags
-		self.main_text_area.tag_configure("cmd", foreground="lightgray", font=("Arial", 10, "bold"))
-		self.main_text_area.tag_configure("critical", foreground="red")
-		self.main_text_area.tag_configure("good", foreground="green")
-		self.main_text_area.tag_configure("info", foreground="blue")
-		self.main_text_area.tag_configure("warn", foreground="orange")
+		# Configure highlight tags
+		self.__configure_output_tags()
 
 		# Configure scrollbars for the text area
 		self.configure_scrollbar_style()
@@ -274,9 +272,9 @@ class LieutenantTerraform(ReusableWidgetMixin):
 		self.tkr.after(0, self.__run(cmd, self.main_text_area))
 		self.tkr.mainloop()
 
-	def __configure_tag_sidebar_style(self) -> None:
+	def __configure_match_sidebar_style(self) -> None:
 		"""
-		Configure a dedicated style for the tag sidebar treeview.
+		Configure a dedicated style for the match sidebar treeview.
 		"""
 		style = ttk.Style(self.tkr)
 		style.configure(
@@ -302,6 +300,46 @@ class LieutenantTerraform(ReusableWidgetMixin):
 			background=[("active", self.THEME_BACKGROUND)],
 			foreground=[("active", self.THEME_FOREGROUND)],
 		)
+
+	def __configure_output_tags(self) -> None:
+		"""
+		Configure output text tags from the highlight preferences.
+		"""
+		self.main_text_area.tag_configure("cmd", foreground="lightgray", font=("Arial", 10, "bold"))
+		for highlight_name, highlight_info in self.cfg.prefs.get("highlights", {}).items():
+			self.main_text_area.tag_configure(highlight_name, foreground=highlight_info.get("color", self.THEME_FOREGROUND))
+
+	def __match_rule_group(self, preference_key: str, line: str) -> tuple[str | None, str | None]:
+		"""
+		Return the first configured rule name and pattern matching a line.
+		"""
+		for rule_name, rule_info in self.cfg.prefs.get(preference_key, {}).items():
+			for pattern in rule_info.get("patterns", []):
+				try:
+					if re.search(pattern, line, re.IGNORECASE):
+						return rule_name, pattern
+				except re.error:
+					continue
+		return None, None
+
+	def __record_sidebar_match(self, name: str, pattern: str, line_number: int) -> None:
+		"""
+		Record a matched tag in the sidebar with a running count.
+		"""
+		match_key = (name, pattern)
+		count = self.match_pattern_counts.get(match_key, 0) + 1
+		self.match_pattern_counts[match_key] = count
+		item_id = self.match_pattern_items.get(match_key)
+		if item_id is None:
+			item_id = self.match_patterns_tree.insert(
+				"",
+				tk.END,
+				values=(name, pattern, count),
+			)
+			self.match_pattern_items[match_key] = item_id
+			self.match_item_lines[item_id] = line_number
+		else:
+			self.match_patterns_tree.item(item_id, values=(name, pattern, count))
 
 	@beartype
 	def __update_status_bar(self) -> None:
@@ -392,20 +430,20 @@ class LieutenantTerraform(ReusableWidgetMixin):
 		self.__update_search_status()
 
 	@beartype
-	def __on_tag_pattern_selected(self, _event) -> None:
+	def __on_pattern_selected(self, _event) -> None:
 		"""
-		Use the selected tag sidebar pattern as the current search.
+		Use the selected sidebar pattern as the current search.
 		"""
-		selected_item = self.tag_patterns_tree.selection()
+		selected_item = self.match_patterns_tree.selection()
 		if not selected_item:
 			return
 
 		item_id = selected_item[0]
-		_tag_name, pattern, _count = self.tag_patterns_tree.item(item_id, "values")
+		_tag_name, pattern, _count = self.match_patterns_tree.item(item_id, "values")
 		self.search_entry.delete(0, tk.END)
 		self.search_entry.insert(0, pattern)
 		self.__find()
-		self.__focus_match_for_line(self.tag_item_lines.get(item_id))
+		self.__focus_match_for_line(self.match_item_lines.get(item_id))
 
 	@beartype
 	def __focus_match_for_line(self, line_number) -> None:
@@ -469,34 +507,19 @@ class LieutenantTerraform(ReusableWidgetMixin):
 				line (str): A line of output from the command.
 			"""
 			applied_tag = tag
-			# Only perform the search if a tag is not already applied
-			if not tag and "tags" in self.cfg.prefs:
-				for tag_name, tag_info in self.cfg.prefs["tags"].items():
-					for pattern in tag_info.get("patterns", []):
-						try:
-							match = re.search(pattern, line, re.IGNORECASE)
-							if match:
-								applied_tag = tag_name
-								line_number = int(float(text_area.index(tk.END))) - 1
-								pattern_key = (tag_name, pattern)
-								count = self.tag_pattern_counts.get(pattern_key, 0) + 1
-								self.tag_pattern_counts[pattern_key] = count
-								item_id = self.tag_pattern_items.get(pattern_key)
-								if item_id is None:
-									item_id = self.tag_patterns_tree.insert(
-										"",
-										tk.END,
-										values=(tag_name, pattern, count),
-									)
-									self.tag_pattern_items[pattern_key] = item_id
-									self.tag_item_lines[item_id] = line_number
-								else:
-									self.tag_patterns_tree.item(item_id, values=(tag_name, pattern, count))
-								break
-						except re.error:
-							continue
-					if applied_tag:
-						break
+			line_number = int(float(text_area.index(tk.END))) - 1
+
+			highlight_name = None
+			highlight_pattern = None
+			if not tag:
+				highlight_name, highlight_pattern = self.__match_rule_group("highlights", line)
+				if highlight_name and highlight_pattern:
+					applied_tag = highlight_name
+
+			tag_name, tag_pattern = self.__match_rule_group("line_tags", line)
+			if tag_name and tag_pattern:
+				self.__record_sidebar_match(tag_name, tag_pattern, line_number)
+
 			text_area.insert(tk.END, line, applied_tag)
 			text_area.see(tk.END)
 			self.raw_output += line
@@ -513,12 +536,12 @@ class LieutenantTerraform(ReusableWidgetMixin):
 			self.running_label.config(text=command)
 
 		def run_pipeline():
-			# Clear the tag_patterns_tree before each run
-			self.tag_item_lines = {}
-			self.tag_pattern_items = {}
-			self.tag_pattern_counts = {}
-			for item in self.tag_patterns_tree.get_children():
-				self.tag_patterns_tree.delete(item)
+			# Clear the match sidebar before each run
+			self.match_item_lines = {}
+			self.match_pattern_items = {}
+			self.match_pattern_counts = {}
+			for item in self.match_patterns_tree.get_children():
+				self.match_patterns_tree.delete(item)
 			pipeline = CommandPipeline(cmd, self.__exit, output_callback, running_callback, config=self.cfg)
 			running_callback("")
 			self.tkr.after(

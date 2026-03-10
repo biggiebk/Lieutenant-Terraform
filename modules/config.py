@@ -88,7 +88,7 @@ class LieutenantTerraformConfig():
 			"TF_CLI_ARGS": "-no-color",
 			"Window geometry": "754x763"
 		}
-		self.prefs['tags'] = {
+		self.prefs['highlights'] = {
 			"critical": {
 				"color": "red",
 				"patterns": ["error", "failed", "failure", "invalid", "\s\s-\s", "result:\sfalse",]
@@ -106,6 +106,7 @@ class LieutenantTerraformConfig():
 				"patterns": ["warning", "warn", "\s\s~\s"]
 			}
 		}
+		self.prefs['line_tags'] = {}
 		if self.config_file != "":
 			self.load(self.config_file)
 
@@ -126,8 +127,12 @@ class LieutenantTerraformConfig():
 			self.prefs['cmds'].update(cfg['cmds'])
 		if 'aliases' in cfg:
 			self.prefs['aliases'].update(cfg['aliases'])
-		if 'tags' in cfg:
-			self.prefs['tags'].update(cfg['tags'])
+		if 'highlights' in cfg:
+			self.prefs['highlights'].update(cfg['highlights'])
+		elif 'tags' in cfg:
+			self.prefs['highlights'].update(cfg['tags'])
+		if 'line_tags' in cfg:
+			self.prefs['line_tags'].update(cfg['line_tags'])
 		self.prefs["config_file"] = self.config_file
 		self.prefs.update()
 		self.set_env()  # Set environment variables based on the loaded config
