@@ -47,6 +47,8 @@ class LieutenantTerraform(ReusableWidgetMixin):
 		self.search_results = []
 		self.current_match_index = -1
 		self.tag_item_lines = {}
+		self.tag_pattern_items = {}
+		self.tag_pattern_counts = {}
 
 		# Load the main UI
 		self.__load_main(arguments)
@@ -145,7 +147,8 @@ class LieutenantTerraform(ReusableWidgetMixin):
 		# Treeview for displaying matching tag patterns, to the right of main_text_area
 		tag_columns = (
 			("Tag", "Tag", 100, tk.W),
-			("Pattern", "Pattern", 200, tk.W),
+			("Pattern", "Pattern", 180, tk.W),
+			("Count", "Count", 60, tk.CENTER),
 		)
 		self.__configure_tag_sidebar_style()
 		tag_frame, self.tag_patterns_tree = self.create_treeview(tag_columns, master=tag_sidebar)
@@ -398,7 +401,7 @@ class LieutenantTerraform(ReusableWidgetMixin):
 			return
 
 		item_id = selected_item[0]
-		_tag_name, pattern = self.tag_patterns_tree.item(item_id, "values")
+		_tag_name, pattern, _count = self.tag_patterns_tree.item(item_id, "values")
 		self.search_entry.delete(0, tk.END)
 		self.search_entry.insert(0, pattern)
 		self.__find()
@@ -474,13 +477,21 @@ class LieutenantTerraform(ReusableWidgetMixin):
 							match = re.search(pattern, line, re.IGNORECASE)
 							if match:
 								applied_tag = tag_name
-								# Insert into the tag_patterns_tree
 								line_number = int(float(text_area.index(tk.END))) - 1
-								item_id = self.tag_patterns_tree.insert(
-									"", tk.END,
-									values=(tag_name, pattern)
-								)
-								self.tag_item_lines[item_id] = line_number
+								pattern_key = (tag_name, pattern)
+								count = self.tag_pattern_counts.get(pattern_key, 0) + 1
+								self.tag_pattern_counts[pattern_key] = count
+								item_id = self.tag_pattern_items.get(pattern_key)
+								if item_id is None:
+									item_id = self.tag_patterns_tree.insert(
+										"",
+										tk.END,
+										values=(tag_name, pattern, count),
+									)
+									self.tag_pattern_items[pattern_key] = item_id
+									self.tag_item_lines[item_id] = line_number
+								else:
+									self.tag_patterns_tree.item(item_id, values=(tag_name, pattern, count))
 								break
 						except re.error:
 							continue
@@ -504,6 +515,8 @@ class LieutenantTerraform(ReusableWidgetMixin):
 		def run_pipeline():
 			# Clear the tag_patterns_tree before each run
 			self.tag_item_lines = {}
+			self.tag_pattern_items = {}
+			self.tag_pattern_counts = {}
 			for item in self.tag_patterns_tree.get_children():
 				self.tag_patterns_tree.delete(item)
 			pipeline = CommandPipeline(cmd, self.__exit, output_callback, running_callback, config=self.cfg)
