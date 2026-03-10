@@ -1,55 +1,83 @@
 """
-Description: Class for managing Tkinter child windows with a debug function.
+Description: Class for managing Tkinter child windows with shared widget helpers.
 """
+from collections.abc import Callable
 import tkinter as tk
-from tkinter import ttk
+
 from beartype import beartype
+
 from modules.config import LieutenantTerraformConfig
+from modules.ui.widget_mixin import ReusableWidgetMixin
 
 
-class ChildWindow:
+class ChildWindow(ReusableWidgetMixin, tk.Toplevel):
 	"""
 	Class for managing Tkinter child windows.
-	Includes a debug function to display a text area with an OK button.
+	Includes shared helpers for buttons, dialogs, and tree widgets.
 	"""
 
 	@beartype
-	def __init__(self, cfg: LieutenantTerraformConfig, title: str, geometry: str = "600x400") -> None:
+	def __init__(
+		self,
+		cfg: LieutenantTerraformConfig,
+		title: str,
+		geometry: str = "600x400",
+		parent: tk.Misc | None = None,
+	) -> None:
 		"""
 		Initialize the child window.
 
 		Args:
-			config (LieutenantTerraformConfig): Configuration object for the application.
+			cfg (LieutenantTerraformConfig): Configuration object for the application.
 			title (str): Title of the Tkinter window.
 			geometry (str): Geometry of the Tkinter window (e.g., "600x400"). Defaults to "600x400".
+			parent (tk.Misc | None): Optional parent widget for the child window.
 		"""
+		super().__init__(master=parent)
 		self.cfg = cfg
-		self.window = tk.Toplevel()
-		self.window.title(title)
-		self.window.geometry(geometry)
-		self.window.resizable(True, True)
-
-		# Call the private build UI function
-		self.__build_ui()
+		self.window = self
+		self.title(title)
+		self.geometry(geometry)
+		self.resizable(True, True)
 
 	@beartype
-	def add_button(self, text: str, command, master=None) -> ttk.Button:
+	def add_button(
+		self,
+		text: str,
+		command: Callable[..., object],
+		master: tk.Misc | None = None,
+	):
 		"""
 		Add a button to the specified master widget and return the button.
 
 		Args:
 			text (str): The text to display on the button.
-			command (function): The function to execute when the button is clicked.
-			master: The parent widget where the button will be placed. Defaults to self.window.
+			command (Callable[..., object]): The function to execute when the button is clicked.
+			master (tk.Misc | None): The parent widget where the button will be placed. Defaults to self.
 
 		Returns:
 			ttk.Button: The created button.
 		"""
-		if master is None:
-			master = self.window  # Default to self.window if no master is provided
+		button_master = master or self
+		return self.create_button(button_master, text=text, command=command)
 
-		button = ttk.Button(master, text=text, command=command)
-		return button
+	def create_modal(self, title: str, geometry: str) -> tk.Toplevel:
+		"""
+		Create a modal dialog tied to this child window.
+
+		Args:
+			title (str): Title of the dialog window.
+			geometry (str): Geometry of the dialog window.
+
+		Returns:
+			tk.Toplevel: The created modal dialog.
+		"""
+		dialog = tk.Toplevel(self)
+		dialog.title(title)
+		dialog.geometry(geometry)
+		dialog.transient(self)
+		dialog.grab_set()
+		return dialog
 
 	@beartype
 	def debug(self, debug_text: str) -> None:
@@ -59,24 +87,11 @@ class ChildWindow:
 		Args:
 			debug_text (str): The text to display in the debug window.
 		"""
-		debug_window = tk.Toplevel(self.window)
-		debug_window.title("Debug")
-		debug_window.geometry("500x400")
-		debug_window.transient(self.window)
-		debug_window.grab_set()
+		debug_window = self.create_modal("Debug", "500x400")
 
-		# Text area for displaying debug information
-		text_area = tk.Text(debug_window, wrap=tk.WORD)
+		text_area = self.create_text_widget(debug_window, wrap=tk.WORD)
 		text_area.insert(tk.END, debug_text)
-		text_area.config(state=tk.DISABLED)  # Make the text area read-only
+		text_area.config(state=tk.DISABLED)
 		text_area.pack(expand=True, fill=tk.BOTH, padx=10, pady=10)
 
-		# OK button to close the debug window
-		ok_button = ttk.Button(debug_window, text="OK", command=debug_window.destroy)
-		ok_button.pack(pady=10)
-
-	@beartype
-	def __build_ui(self) -> None:
-		"""
-		Description: Build the child window UI.
-		"""
+		self.add_button(text="OK", command=debug_window.destroy, master=debug_window).pack(pady=10)

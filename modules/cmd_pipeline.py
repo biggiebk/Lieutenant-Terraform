@@ -38,6 +38,9 @@ class CommandPipeline:
         self.running_callback = running_callback
         self.cfg = config
         self.process = None
+        self.completed_successfully = False
+        self.completed_command = ' '.join(cmd)
+        self.exit_on_done = False
 
         try:
             # Are we running a command alias?
@@ -48,19 +51,21 @@ class CommandPipeline:
                 )
             )
             if len(possible_aliases) == 1:
-                asyncio.run(self.__run_alias(possible_aliases[0]))
+                self.completed_command = possible_aliases[0]
+                self.completed_successfully = asyncio.run(self.__run_alias(possible_aliases[0]))
             elif len(possible_aliases) > 1:
                 complete_alias = list(
                     filter(lambda word: word == self.cmd[0], possible_aliases)
                 )
                 if len(complete_alias) == 1:
-                    asyncio.run(self.__run_alias(complete_alias[0]))
+                    self.completed_command = complete_alias[0]
+                    self.completed_successfully = asyncio.run(self.__run_alias(complete_alias[0]))
                 else:
                     print("Multiple aliases found, please specify which one to run.")
                     print(f"  Matches: {', '.join(possible_aliases)}")
                     sys.exit(1)
             else:
-                asyncio.run(self.run(self.cmd))
+                self.completed_successfully = asyncio.run(self.run(self.cmd))
         except KeyError as e:
             self.output_callback(f"KeyError: {e}\n", tag="critical")
         except Exception as e:
@@ -158,7 +163,7 @@ class CommandPipeline:
             return False
 
     @beartype
-    async def __run_alias(self, alias: str) -> None:
+    async def __run_alias(self, alias: str) -> bool:
         """
         Run the command pipeline.
         """
@@ -166,10 +171,10 @@ class CommandPipeline:
             pipeline = self.cfg.prefs['aliases'][alias]["pipeline"]
         except KeyError as e:
             self.output_callback(f"Alias pipeline KeyError: {e}\n", tag="critical")
-            return
+            return False
         except Exception as e:
             self.output_callback(f"Exception accessing alias pipeline: {type(e).__name__}: {e}\n", tag="critical")
-            return
+            return False
         for cmd in pipeline:
             try:
                 success = await self.run(
@@ -178,15 +183,16 @@ class CommandPipeline:
                 )
             except Exception as e:
                 self.output_callback(f"Exception running command in alias: {type(e).__name__}: {e}\n", tag="critical")
-                return
+                return False
             if not success:
                 self.output_callback(f"Alias '{alias}' failed to execute: {cmd}\n", tag="critical")
-                return
+                return False
         try:
-            if self.cfg.prefs['aliases'][alias].get("exit_on_done", False):
-                self.exit_callback()
+            self.exit_on_done = self.cfg.prefs['aliases'][alias].get("exit_on_done", False)
         except Exception as e:
             self.output_callback(f"Exception in exit_callback: {type(e).__name__}: {e}\n", tag="critical")
+            return False
+        return True
 
     def terminate(self):
         """

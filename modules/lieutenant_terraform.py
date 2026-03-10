@@ -6,17 +6,17 @@ import subprocess
 import sys
 import threading
 import tkinter as tk
-from tkinter import ttk
 import os
 from beartype import beartype
 from modules.config import LieutenantTerraformConfig
 from modules.ui.aliases_ui import AliasesUI
 from modules.ui.preferences_ui import PreferencesUI
 from modules.ui.tags_ui import TagsUI
+from modules.ui.widget_mixin import ReusableWidgetMixin
 from modules.cmd_pipeline import CommandPipeline
 
 
-class LieutenantTerraform:
+class LieutenantTerraform(ReusableWidgetMixin):
 	"""
 	Main class for managing the Lieutenant Terraform application.
 	Handles configuration, UI initialization, and command execution.
@@ -56,8 +56,8 @@ class LieutenantTerraform:
 			cmd (list): Command to execute in the text area.
 		"""
 		# Configure the menu bar with preferences
-		menubar = tk.Menu(self.tkr)
-		preferences = tk.Menu(menubar, tearoff=0)
+		menubar = self.create_menu(self.tkr)
+		preferences = self.create_menu(menubar)
 		menubar.add_cascade(label="Preferences", menu=preferences)
 		preferences.add_command(label="Settings", command=lambda: PreferencesUI(self.cfg, "settings"))
 		preferences.add_command(label="Commands", command=lambda: PreferencesUI(self.cfg, "cmds"))
@@ -66,7 +66,7 @@ class LieutenantTerraform:
 
 		# Add word wrap toggle to the menu bar
 		self.word_wrap_var = tk.BooleanVar(value=False)
-		view_menu = tk.Menu(menubar, tearoff=0)
+		view_menu = self.create_menu(menubar)
 		view_menu.add_checkbutton(
 			label="Word Wrap",
 			variable=self.word_wrap_var,
@@ -75,7 +75,7 @@ class LieutenantTerraform:
 		menubar.add_cascade(label="View", menu=view_menu)
 
 		# Add Run drop down menu for aliases
-		run_menu = tk.Menu(menubar, tearoff=0)
+		run_menu = self.create_menu(menubar)
 		self.run_alias_var = tk.StringVar()
 		alias_names = list(self.cfg.prefs.get("aliases", {}).keys())
 		for alias in alias_names:
@@ -88,18 +88,41 @@ class LieutenantTerraform:
 		menubar.add_cascade(label="Run", menu=run_menu)
 
 		self.tkr.configure(menu=menubar)
+		self.tkr.grid_rowconfigure(0, weight=1)
+		self.tkr.grid_columnconfigure(0, weight=1)
+
+		main_pane = self.create_paned_window(
+			self.tkr,
+			orient=tk.HORIZONTAL,
+		)
+		main_pane.grid(column=0, row=0, sticky="nsew")
+
+		output_frame = self.create_frame(main_pane)
+		output_frame.grid_rowconfigure(0, weight=1)
+		output_frame.grid_columnconfigure(0, weight=1)
+		main_pane.add(output_frame, stretch="always", minsize=400)
+
+		tag_sidebar = self.create_frame(main_pane)
+		main_pane.add(tag_sidebar, minsize=180)
 
 		# Configure the text area for displaying output
-		self.main_text_area = tk.Text(
-			self.tkr,
+		self.main_text_area = self.create_text_widget(
+			output_frame,
 			wrap=tk.NONE,
 			highlightthickness=0,  # Remove white border when selected
 			bd=0,  # Remove border
 			relief="flat"  # Flat appearance
 		)
-		self.main_text_area.grid(column=0, row=0, columnspan=3, sticky="nesw")
-		self.tkr.grid_rowconfigure(0, weight=1)
-		self.tkr.grid_columnconfigure(0, weight=1)
+		self.main_text_area.grid(column=0, row=0, sticky="nsew")
+
+		# Treeview for displaying matching tag patterns, to the right of main_text_area
+		tag_columns = (
+			("Tag", "Tag", 100, tk.W),
+			("Pattern", "Pattern", 200, tk.W),
+			("Line", "Line", 60, tk.CENTER),
+		)
+		tag_frame, self.tag_patterns_tree = self.create_treeview(tag_columns, master=tag_sidebar)
+		tag_frame.pack(fill=tk.BOTH, expand=True, padx=(5, 0), pady=2)
 
 		# Enable copy and paste in the text area
 		def copy(event=None):
@@ -131,48 +154,34 @@ class LieutenantTerraform:
 		self.main_text_area.tag_configure("warn", foreground="orange")
 
 		# Configure scrollbars for the text area
-		style = ttk.Style()
-		style.configure(
-			"Vertical.TScrollbar",
-			background="lightgray",
-			troughcolor="darkgray",
-			bordercolor="black",
-			arrowcolor="black",
-		)
-		style.configure(
-			"Horizontal.TScrollbar",
-			background="lightgray",
-			troughcolor="darkgray",
-			bordercolor="black",
-			arrowcolor="black",
-		)
+		self.configure_scrollbar_style()
 
-		scroll_v = ttk.Scrollbar(
-			self.tkr, orient="vertical", command=self.main_text_area.yview, style="Vertical.TScrollbar"
+		scroll_v = self.create_scrollbar(
+			output_frame, orient="vertical", command=self.main_text_area.yview, style="Vertical.TScrollbar"
 		)
-		scroll_v.grid(column=3, row=0, sticky="ns")
+		scroll_v.grid(column=1, row=0, sticky="ns")
 
-		scroll_h = ttk.Scrollbar(
-			self.tkr, orient="horizontal", command=self.main_text_area.xview, style="Horizontal.TScrollbar"
+		scroll_h = self.create_scrollbar(
+			output_frame, orient="horizontal", command=self.main_text_area.xview, style="Horizontal.TScrollbar"
 		)
-		scroll_h.grid(column=0, row=1, columnspan=3, sticky="we")
+		scroll_h.grid(column=0, row=1, sticky="we")
 		self.main_text_area.config(yscrollcommand=scroll_v.set, xscrollcommand=scroll_h.set)
 
 		# Configure the search bar
-		search_frame = ttk.Frame(self.tkr)
-		search_frame.grid(column=0, row=2, columnspan=3, sticky="ew", pady=5)
+		search_frame = self.create_frame(self.tkr)
+		search_frame.grid(column=0, row=1, sticky="ew", pady=5)
 
-		find_button = ttk.Button(search_frame, text="Find", command=self.__find)
+		find_button = self.create_button(search_frame, text="Find", command=self.__find)
 		find_button.grid(column=0, row=0, padx=5)
 
-		self.search_entry = ttk.Entry(search_frame)
+		self.search_entry = self.create_entry(search_frame)
 		self.search_entry.grid(column=1, row=0, padx=5, sticky="ew")
 		self.search_entry.bind("<Return>", lambda e: self.__find())
 		search_frame.grid_columnconfigure(1, weight=1)
 
 		# Add ignore case checkbox
 		self.ignore_case_var = tk.BooleanVar(value=True)
-		ignore_case_checkbox = ttk.Checkbutton(
+		ignore_case_checkbox = self.create_checkbutton(
 			search_frame,
 			text="Ignore Case",
 			variable=self.ignore_case_var
@@ -180,20 +189,20 @@ class LieutenantTerraform:
 		ignore_case_checkbox.grid(column=2, row=0, padx=5)
 
 		# Configure navigation controls for search results
-		navigation_frame = ttk.Frame(self.tkr)
-		navigation_frame.grid(column=0, row=3, columnspan=3, sticky="ew", pady=5)
+		navigation_frame = self.create_frame(self.tkr)
+		navigation_frame.grid(column=0, row=2, sticky="ew", pady=5)
 
-		prev_button = ttk.Button(navigation_frame, text="<", command=self.__previous_match)
+		prev_button = self.create_button(navigation_frame, text="<", command=self.__previous_match)
 		prev_button.grid(column=0, row=0, padx=1)
 
-		next_button = ttk.Button(navigation_frame, text=">", command=self.__next_match)
+		next_button = self.create_button(navigation_frame, text=">", command=self.__next_match)
 		next_button.grid(column=1, row=0, padx=1)
 
-		self.search_status = ttk.Label(navigation_frame, foreground="darkgray", text="0/0 matches")
+		self.search_status = self.create_label(navigation_frame, foreground="darkgray", text="0/0 matches")
 		self.search_status.grid(column=2, row=0, padx=5, sticky="w")
 
 		# Add folder and branch labels to the navigation frame
-		self.running_label = ttk.Label(
+		self.running_label = self.create_label(
 			navigation_frame,
 			text="",
 			anchor=tk.W,
@@ -202,7 +211,7 @@ class LieutenantTerraform:
 		)
 		self.running_label.grid(column=3, row=0, padx=5, sticky="e")
 
-		self.folder_label = ttk.Label(
+		self.folder_label = self.create_label(
 			navigation_frame,
 			text="",
 			anchor=tk.W,
@@ -211,7 +220,7 @@ class LieutenantTerraform:
 		)
 		self.folder_label.grid(column=4, row=0, padx=5, sticky="e")
 
-		self.branch_label = ttk.Label(
+		self.branch_label = self.create_label(
 			navigation_frame,
 			text="",
 			anchor=tk.W,
@@ -368,8 +377,15 @@ class LieutenantTerraform:
 				for tag_name, tag_info in self.cfg.prefs["tags"].items():
 					for pattern in tag_info.get("patterns", []):
 						try:
-							if re.search(pattern, line, re.IGNORECASE):
+							match = re.search(pattern, line, re.IGNORECASE)
+							if match:
 								applied_tag = tag_name
+								# Insert into the tag_patterns_tree
+								line_number = int(float(text_area.index(tk.END))) - 1
+								self.tag_patterns_tree.insert(
+									"", tk.END,
+									values=(tag_name, pattern, line_number)
+								)
 								break
 						except re.error:
 							continue
@@ -391,12 +407,36 @@ class LieutenantTerraform:
 			self.running_label.config(text=command)
 
 		def run_pipeline():
-			CommandPipeline(cmd, self.__exit, output_callback, running_callback, config=self.cfg)
+			# Clear the tag_patterns_tree before each run
+			for item in self.tag_patterns_tree.get_children():
+				self.tag_patterns_tree.delete(item)
+			pipeline = CommandPipeline(cmd, self.__exit, output_callback, running_callback, config=self.cfg)
 			running_callback("")
-
+			self.tkr.after(
+				0,
+				lambda: self.__show_run_completion(
+					pipeline.completed_command,
+					pipeline.completed_successfully,
+					pipeline.exit_on_done,
+				),
+			)
 
 		self.thread = threading.Thread(target=run_pipeline, daemon=True)
 		self.thread.start()
+
+	def __show_run_completion(self, command: str, was_successful: bool, exit_on_done: bool = False) -> None:
+		"""
+		Display an always-on-top popup when a run finishes.
+		"""
+		status_text = "completed successfully" if was_successful else "failed"
+		title = "Run Complete" if was_successful else "Run Failed"
+		message = f"Run for '{command}' {status_text}."
+		self.create_popup(
+			self.tkr,
+			title=title,
+			message=message,
+			on_ok=self.__exit if exit_on_done and was_successful else None,
+		)
 
 	@beartype
 	def __toggle_word_wrap(self) -> None:
