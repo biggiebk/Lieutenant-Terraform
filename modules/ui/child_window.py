@@ -36,11 +36,24 @@ class ChildWindow(ReusableWidgetMixin, tk.Toplevel):
 		super().__init__(master=parent)
 		self.cfg = cfg
 		self.window = self
+		self.content_frame = self
 		self.configure_theme(self)
 		self.title(title)
 		self.geometry(geometry)
 		self.resizable(True, True)
 		self.apply_native_window_theme(self)
+		if self.use_custom_windows_chrome():
+			self.overrideredirect(True)
+			self.grid_rowconfigure(1, weight=1)
+			self.grid_columnconfigure(0, weight=1)
+			self.title_bar = self.create_custom_title_bar(self, title, self.destroy)
+			self.title_bar.grid(column=0, row=0, sticky="ew")
+			self.content_frame = self.create_frame(self)
+			self.content_frame.grid(column=0, row=1, sticky="nsew")
+			self.content_frame.grid_rowconfigure(0, weight=1)
+			self.content_frame.grid_columnconfigure(0, weight=1)
+			resize_handle = self.create_resize_handle(self, self)
+			resize_handle.grid(column=0, row=2, sticky="se", padx=4, pady=2)
 
 	@beartype
 	def add_button(
@@ -60,7 +73,7 @@ class ChildWindow(ReusableWidgetMixin, tk.Toplevel):
 		Returns:
 			ttk.Button: The created button.
 		"""
-		button_master = master or self
+		button_master = master or self._resolve_master(None)
 		return self.create_button(button_master, text=text, command=command)
 
 	def create_modal(self, title: str, geometry: str) -> tk.Toplevel:

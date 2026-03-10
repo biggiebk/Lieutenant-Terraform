@@ -22,6 +22,8 @@ class ReusableWidgetMixin:
 	WINDOWS_BORDER_COLOR_ATTRIBUTE_ID = 34
 	WINDOWS_CAPTION_COLOR_ATTRIBUTE_ID = 35
 	WINDOWS_TEXT_COLOR_ATTRIBUTE_ID = 36
+	WINDOW_MIN_WIDTH = 320
+	WINDOW_MIN_HEIGHT = 220
 
 	def _resolve_master(self, master: tk.Misc | None) -> tk.Misc:
 		"""
@@ -29,6 +31,9 @@ class ReusableWidgetMixin:
 		"""
 		if master is not None:
 			return master
+		content_frame = getattr(self, "content_frame", None)
+		if content_frame is not None:
+			return content_frame
 		window = getattr(self, "window", None)
 		if window is not None:
 			return window
@@ -191,6 +196,212 @@ class ReusableWidgetMixin:
 				return
 
 		widget.after_idle(apply_theme)
+
+	def use_custom_windows_chrome(self) -> bool:
+		"""
+		Return whether Windows should use custom in-app chrome.
+		"""
+		return sys.platform == "win32"
+
+	def create_plain_frame(self, master: tk.Misc, **kwargs) -> tk.Frame:
+		"""
+		Create a plain Tk frame for custom chrome areas.
+		"""
+		frame_kwargs = {
+			"bg": self.THEME_BACKGROUND,
+			"bd": 0,
+			"highlightthickness": 0,
+		}
+		frame_kwargs.update(kwargs)
+		return tk.Frame(master, **frame_kwargs)
+
+	def create_plain_label(self, master: tk.Misc, text: str = "", **kwargs) -> tk.Label:
+		"""
+		Create a plain Tk label for custom chrome areas.
+		"""
+		label_kwargs = {
+			"text": text,
+			"bg": self.THEME_BACKGROUND,
+			"fg": self.THEME_FOREGROUND,
+			"anchor": tk.W,
+			"bd": 0,
+			"highlightthickness": 0,
+		}
+		label_kwargs.update(kwargs)
+		return tk.Label(master, **label_kwargs)
+
+	def create_window_button(
+		self,
+		master: tk.Misc,
+		text: str,
+		command: Callable[..., object],
+		**kwargs,
+	) -> tk.Button:
+		"""
+		Create a plain Tk button for custom chrome areas.
+		"""
+		button_kwargs = {
+			"text": text,
+			"command": command,
+			"bg": self.THEME_BACKGROUND,
+			"fg": self.THEME_FOREGROUND,
+			"activebackground": self.THEME_ACTIVE,
+			"activeforeground": self.THEME_FOREGROUND,
+			"relief": tk.FLAT,
+			"bd": 0,
+			"highlightthickness": 0,
+			"padx": 10,
+			"pady": 6,
+		}
+		button_kwargs.update(kwargs)
+		return tk.Button(master, **button_kwargs)
+
+	def create_menu_button(self, master: tk.Misc, text: str, menu: tk.Menu, **kwargs) -> tk.Menubutton:
+		"""
+		Create a themed menubutton for a custom menu bar.
+		"""
+		button_kwargs = {
+			"text": text,
+			"menu": menu,
+			"bg": self.THEME_BACKGROUND,
+			"fg": self.THEME_FOREGROUND,
+			"activebackground": self.THEME_ACTIVE,
+			"activeforeground": self.THEME_FOREGROUND,
+			"relief": tk.FLAT,
+			"bd": 0,
+			"highlightthickness": 0,
+			"direction": "below",
+			"padx": 10,
+			"pady": 6,
+		}
+		button_kwargs.update(kwargs)
+		return tk.Menubutton(master, **button_kwargs)
+
+	def _start_window_drag(self, event, window: tk.Tk | tk.Toplevel) -> str:
+		"""
+		Capture the initial drag position for a custom window title bar.
+		"""
+		window._drag_origin = (window.winfo_x(), window.winfo_y(), event.x_root, event.y_root)
+		return "break"
+
+	def _drag_window(self, event, window: tk.Tk | tk.Toplevel) -> str:
+		"""
+		Move a custom-chrome window while dragging its title bar.
+		"""
+		start_x, start_y, root_x, root_y = getattr(
+			window,
+			"_drag_origin",
+			(window.winfo_x(), window.winfo_y(), event.x_root, event.y_root),
+		)
+		delta_x = event.x_root - root_x
+		delta_y = event.y_root - root_y
+		window.geometry(f"+{start_x + delta_x}+{start_y + delta_y}")
+		return "break"
+
+	def _start_window_resize(self, event, window: tk.Tk | tk.Toplevel) -> str:
+		"""
+		Capture the initial resize position for a custom window resize grip.
+		"""
+		window._resize_origin = (window.winfo_width(), window.winfo_height(), event.x_root, event.y_root)
+		return "break"
+
+	def _resize_window(self, event, window: tk.Tk | tk.Toplevel) -> str:
+		"""
+		Resize a custom-chrome window from its resize grip.
+		"""
+		width, height, root_x, root_y = getattr(
+			window,
+			"_resize_origin",
+			(window.winfo_width(), window.winfo_height(), event.x_root, event.y_root),
+		)
+		new_width = max(self.WINDOW_MIN_WIDTH, width + (event.x_root - root_x))
+		new_height = max(self.WINDOW_MIN_HEIGHT, height + (event.y_root - root_y))
+		window.geometry(f"{new_width}x{new_height}")
+		return "break"
+
+	def minimize_custom_window(self, window: tk.Tk | tk.Toplevel) -> None:
+		"""
+		Minimize a custom-chrome window and restore the override afterward.
+		"""
+		window.overrideredirect(False)
+		window.iconify()
+
+	def restore_custom_window(self, _event, window: tk.Tk | tk.Toplevel) -> None:
+		"""
+		Restore custom chrome after a minimized window is shown again.
+		"""
+		if window.state() == "normal":
+			window.overrideredirect(True)
+			window.lift()
+
+	def create_custom_title_bar(
+		self,
+		window: tk.Tk | tk.Toplevel,
+		title: str,
+		close_command: Callable[..., object],
+	) -> tk.Frame:
+		"""
+		Create a custom title bar for Windows themed windows.
+		"""
+		title_bar = self.create_plain_frame(
+			window,
+			highlightthickness=1,
+			highlightbackground=self.THEME_BORDER,
+			highlightcolor=self.THEME_BORDER,
+		)
+		title_bar.grid_columnconfigure(0, weight=1)
+
+		title_label = self.create_plain_label(
+			title_bar,
+			text=title,
+			font=("Arial", 10, "bold"),
+			padx=12,
+			pady=8,
+		)
+		title_label.grid(column=0, row=0, sticky="ew")
+
+		minimize_button = self.create_window_button(
+			title_bar,
+			text="—",
+			command=lambda: self.minimize_custom_window(window),
+			width=3,
+		)
+		minimize_button.grid(column=1, row=0, sticky="e")
+
+		close_button = self.create_window_button(
+			title_bar,
+			text="✕",
+			command=close_command,
+			width=3,
+		)
+		close_button.grid(column=2, row=0, sticky="e")
+
+		for drag_widget in (title_bar, title_label):
+			drag_widget.bind("<ButtonPress-1>", lambda event, win=window: self._start_window_drag(event, win))
+			drag_widget.bind("<B1-Motion>", lambda event, win=window: self._drag_window(event, win))
+
+		window.bind("<Map>", lambda event, win=window: self.restore_custom_window(event, win), add="+")
+		return title_bar
+
+	def create_custom_menu_bar(self, master: tk.Misc) -> tk.Frame:
+		"""
+		Create a custom themed menu bar container.
+		"""
+		return self.create_plain_frame(
+			master,
+			highlightthickness=1,
+			highlightbackground=self.THEME_BORDER,
+			highlightcolor=self.THEME_BORDER,
+		)
+
+	def create_resize_handle(self, master: tk.Misc, window: tk.Tk | tk.Toplevel) -> tk.Label:
+		"""
+		Create a resize handle for a custom-chrome window.
+		"""
+		handle = self.create_plain_label(master, text="◢", cursor="size_nw_se")
+		handle.bind("<ButtonPress-1>", lambda event, win=window: self._start_window_resize(event, win))
+		handle.bind("<B1-Motion>", lambda event, win=window: self._resize_window(event, win))
+		return handle
 
 	def configure_scrollbar_style(self, style: ttk.Style | None = None) -> None:
 		"""

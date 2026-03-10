@@ -59,27 +59,45 @@ class LieutenantTerraform(ReusableWidgetMixin):
 		Args:
 			cmd (list): Command to execute in the text area.
 		"""
-		# Configure the menu bar with preferences
-		menubar = self.create_menu(self.tkr)
-		preferences = self.create_menu(menubar)
-		menubar.add_cascade(label="Preferences", menu=preferences)
+		content_parent = self.tkr
+		main_row = 0
+		self.tkr.grid_columnconfigure(0, weight=1)
+
+		if self.use_custom_windows_chrome():
+			self.tkr.overrideredirect(True)
+			self.tkr.grid_rowconfigure(2, weight=1)
+			title_bar = self.create_custom_title_bar(self.tkr, "Lieutenant Terraform", self.__exit)
+			title_bar.grid(column=0, row=0, sticky="ew")
+
+			menu_bar = self.create_custom_menu_bar(self.tkr)
+			menu_bar.grid(column=0, row=1, sticky="ew")
+			content_parent = self.create_frame(self.tkr)
+			content_parent.grid(column=0, row=2, sticky="nsew")
+			resize_handle = self.create_resize_handle(self.tkr, self.tkr)
+			resize_handle.grid(column=0, row=3, sticky="se", padx=4, pady=2)
+			main_row = 0
+		else:
+			self.tkr.grid_rowconfigure(0, weight=1)
+			menu_bar = self.create_menu(self.tkr)
+
+		content_parent.grid_rowconfigure(0, weight=1)
+		content_parent.grid_columnconfigure(0, weight=1)
+
+		preferences = self.create_menu(menu_bar)
 		preferences.add_command(label="Settings", command=lambda: PreferencesUI(self.cfg, "settings"))
 		preferences.add_command(label="Commands", command=lambda: PreferencesUI(self.cfg, "cmds"))
 		preferences.add_command(label="Aliases", command=lambda: AliasesUI(self.cfg))
 		preferences.add_command(label="Tags", command=lambda: TagsUI(self.cfg, parent=self.tkr))
 
-		# Add word wrap toggle to the menu bar
 		self.word_wrap_var = tk.BooleanVar(value=False)
-		view_menu = self.create_menu(menubar)
+		view_menu = self.create_menu(menu_bar)
 		view_menu.add_checkbutton(
 			label="Word Wrap",
 			variable=self.word_wrap_var,
 			command=self.__toggle_word_wrap
 		)
-		menubar.add_cascade(label="View", menu=view_menu)
 
-		# Add Run drop down menu for aliases
-		run_menu = self.create_menu(menubar)
+		run_menu = self.create_menu(menu_bar)
 		self.run_alias_var = tk.StringVar()
 		alias_names = list(self.cfg.prefs.get("aliases", {}).keys())
 		for alias in alias_names:
@@ -89,17 +107,22 @@ class LieutenantTerraform(ReusableWidgetMixin):
 				value=alias,
 				command=lambda: self.__run_selected_alias()
 			)
-		menubar.add_cascade(label="Run", menu=run_menu)
 
-		self.tkr.configure(menu=menubar)
-		self.tkr.grid_rowconfigure(0, weight=1)
-		self.tkr.grid_columnconfigure(0, weight=1)
+		if self.use_custom_windows_chrome():
+			self.create_menu_button(menu_bar, text="Preferences", menu=preferences).pack(side=tk.LEFT)
+			self.create_menu_button(menu_bar, text="View", menu=view_menu).pack(side=tk.LEFT)
+			self.create_menu_button(menu_bar, text="Run", menu=run_menu).pack(side=tk.LEFT)
+		else:
+			menu_bar.add_cascade(label="Preferences", menu=preferences)
+			menu_bar.add_cascade(label="View", menu=view_menu)
+			menu_bar.add_cascade(label="Run", menu=run_menu)
+			self.tkr.configure(menu=menu_bar)
 
 		main_pane = self.create_paned_window(
-			self.tkr,
+			content_parent,
 			orient=tk.HORIZONTAL,
 		)
-		main_pane.grid(column=0, row=0, sticky="nsew")
+		main_pane.grid(column=0, row=main_row, sticky="nsew")
 
 		output_frame = self.create_frame(main_pane)
 		output_frame.grid_rowconfigure(0, weight=1)
@@ -174,7 +197,7 @@ class LieutenantTerraform(ReusableWidgetMixin):
 		self.main_text_area.config(yscrollcommand=scroll_v.set, xscrollcommand=scroll_h.set)
 
 		# Configure the search bar
-		search_frame = self.create_frame(self.tkr)
+		search_frame = self.create_frame(content_parent)
 		search_frame.grid(column=0, row=1, sticky="ew", pady=5)
 
 		find_button = self.create_button(search_frame, text="Find", command=self.__find)
@@ -195,7 +218,7 @@ class LieutenantTerraform(ReusableWidgetMixin):
 		ignore_case_checkbox.grid(column=2, row=0, padx=5)
 
 		# Configure navigation controls for search results
-		navigation_frame = self.create_frame(self.tkr)
+		navigation_frame = self.create_frame(content_parent)
 		navigation_frame.grid(column=0, row=2, sticky="ew", pady=5)
 
 		prev_button = self.create_button(navigation_frame, text="<", command=self.__previous_match)

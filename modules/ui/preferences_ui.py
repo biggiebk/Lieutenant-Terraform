@@ -38,13 +38,13 @@ class PreferencesUI(ChildWindow):
 		Description: Build the preferences UI
 		"""
 		# Configure the window grid to allocate space for the container and button frame
-		self.grid_rowconfigure(0, weight=1)  # Row for the container
-		self.grid_rowconfigure(1, weight=0)  # Row for the button frame
-		self.grid_columnconfigure(0, weight=1)
+		self.content_frame.grid_rowconfigure(0, weight=1)  # Row for the container
+		self.content_frame.grid_rowconfigure(1, weight=0)  # Row for the button frame
+		self.content_frame.grid_columnconfigure(0, weight=1)
 
 		# Create a frame for the settings with scrollbars
 		container, _canvas, scrollable_frame, _scrollbar_v, _scrollbar_h = self.create_scrollable_frame(
-			self,
+			self.content_frame,
 			padding=0,
 			canvas_kwargs={"highlightthickness": 0},
 		)
@@ -57,7 +57,7 @@ class PreferencesUI(ChildWindow):
 			row += 1
 
 		# Add Save and Cancel buttons using the add_button function
-		button_frame = self.create_frame(self, padding="10")
+		button_frame = self.create_frame(self.content_frame, padding="10")
 		button_frame.grid(column=0, row=1, sticky="ew")  # Place in row 1
 
 		# Configure the button_frame to center its contents
