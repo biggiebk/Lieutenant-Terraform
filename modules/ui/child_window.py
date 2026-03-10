@@ -40,6 +40,7 @@ class ChildWindow(ReusableWidgetMixin, tk.Toplevel):
 		self.title(title)
 		self.geometry(geometry)
 		self.resizable(True, True)
+		self.apply_native_window_theme(self)
 
 	@beartype
 	def add_button(
@@ -79,6 +80,7 @@ class ChildWindow(ReusableWidgetMixin, tk.Toplevel):
 		dialog.geometry(geometry)
 		dialog.transient(self)
 		dialog.grab_set()
+		self.apply_native_window_theme(dialog)
 		return dialog
 
 	@beartype

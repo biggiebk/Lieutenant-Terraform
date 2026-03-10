@@ -2,6 +2,7 @@
 Description: Reusable Tkinter widget factory helpers.
 """
 from collections.abc import Callable, Sequence
+import sys
 import tkinter as tk
 from tkinter import ttk
 
@@ -17,6 +18,10 @@ class ReusableWidgetMixin:
 	THEME_ACTIVE = "#2b3d45"
 	THEME_BORDER = "#35525d"
 	THEME_SELECTION = "#406a79"
+	WINDOWS_DARK_MODE_ATTRIBUTE_IDS = (20, 19)
+	WINDOWS_BORDER_COLOR_ATTRIBUTE_ID = 34
+	WINDOWS_CAPTION_COLOR_ATTRIBUTE_ID = 35
+	WINDOWS_TEXT_COLOR_ATTRIBUTE_ID = 36
 
 	def _resolve_master(self, master: tk.Misc | None) -> tk.Misc:
 		"""
@@ -45,7 +50,7 @@ class ReusableWidgetMixin:
 		widget.configure(bg=self.THEME_BACKGROUND)
 		widget.option_add("*Background", self.THEME_BACKGROUND)
 		widget.option_add("*Foreground", self.THEME_FOREGROUND)
-		widget.option_add("*Menu.background", self.THEME_SURFACE)
+		widget.option_add("*Menu.background", self.THEME_BACKGROUND)
 		widget.option_add("*Menu.foreground", self.THEME_FOREGROUND)
 		widget.option_add("*Menu.activeBackground", self.THEME_ACTIVE)
 		widget.option_add("*Menu.activeForeground", self.THEME_FOREGROUND)
@@ -130,6 +135,62 @@ class ReusableWidgetMixin:
 		style.configure("TLabelframe.Label", background=self.THEME_BACKGROUND, foreground=self.THEME_FOREGROUND)
 
 		self.configure_scrollbar_style(style)
+		self.apply_native_window_theme(widget)
+
+	def _to_windows_colorref(self, color: str) -> int:
+		"""
+		Convert a hex color to a Windows COLORREF integer.
+		"""
+		color = color.lstrip("#")
+		red = int(color[0:2], 16)
+		green = int(color[2:4], 16)
+		blue = int(color[4:6], 16)
+		return red | (green << 8) | (blue << 16)
+
+	def apply_native_window_theme(self, widget: tk.Misc) -> None:
+		"""
+		Apply native Windows title bar theming when supported.
+		"""
+		if sys.platform != "win32":
+			return
+		if not isinstance(widget, (tk.Tk, tk.Toplevel)):
+			return
+
+		def apply_theme() -> None:
+			try:
+				import ctypes
+
+				widget.update_idletasks()
+				hwnd = widget.winfo_id()
+				dwmapi = ctypes.windll.dwmapi
+
+				for attribute_id in self.WINDOWS_DARK_MODE_ATTRIBUTE_IDS:
+					dark_mode = ctypes.c_int(1)
+					result = dwmapi.DwmSetWindowAttribute(
+						hwnd,
+						attribute_id,
+						ctypes.byref(dark_mode),
+						ctypes.sizeof(dark_mode),
+					)
+					if result == 0:
+						break
+
+				for attribute_id, color in (
+					(self.WINDOWS_BORDER_COLOR_ATTRIBUTE_ID, self.THEME_BORDER),
+					(self.WINDOWS_CAPTION_COLOR_ATTRIBUTE_ID, self.THEME_BACKGROUND),
+					(self.WINDOWS_TEXT_COLOR_ATTRIBUTE_ID, self.THEME_FOREGROUND),
+				):
+					color_value = ctypes.c_uint(self._to_windows_colorref(color))
+					dwmapi.DwmSetWindowAttribute(
+						hwnd,
+						attribute_id,
+						ctypes.byref(color_value),
+						ctypes.sizeof(color_value),
+					)
+			except (AttributeError, OSError, RuntimeError, tk.TclError, ValueError):
+				return
+
+		widget.after_idle(apply_theme)
 
 	def configure_scrollbar_style(self, style: ttk.Style | None = None) -> None:
 		"""
@@ -165,7 +226,7 @@ class ReusableWidgetMixin:
 		"""
 		menu_kwargs = {
 			"tearoff": tearoff,
-			"bg": self.THEME_SURFACE,
+			"bg": self.THEME_BACKGROUND,
 			"fg": self.THEME_FOREGROUND,
 			"activebackground": self.THEME_ACTIVE,
 			"activeforeground": self.THEME_FOREGROUND,

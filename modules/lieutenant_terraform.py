@@ -38,6 +38,7 @@ class LieutenantTerraform(ReusableWidgetMixin):
 		self.raw_output = ""
 		self.tkr.geometry(self.cfg.prefs["settings"].get("Window geometry", "800x600"))
 		self.tkr.protocol("WM_DELETE_WINDOW", self.__exit)
+		self.apply_native_window_theme(self.tkr)
 		self.output = tk.StringVar()
 
 		self.thread = None
