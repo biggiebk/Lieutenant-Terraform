@@ -36,6 +36,7 @@ class ChildWindow(ReusableWidgetMixin, tk.Toplevel):
 		super().__init__(master=parent)
 		self.cfg = cfg
 		self.window = self
+		self.configure_theme(self)
 		self.title(title)
 		self.geometry(geometry)
 		self.resizable(True, True)
@@ -73,6 +74,7 @@ class ChildWindow(ReusableWidgetMixin, tk.Toplevel):
 			tk.Toplevel: The created modal dialog.
 		"""
 		dialog = tk.Toplevel(self)
+		self.configure_theme(dialog)
 		dialog.title(title)
 		dialog.geometry(geometry)
 		dialog.transient(self)

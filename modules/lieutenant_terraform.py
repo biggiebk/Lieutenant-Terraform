@@ -32,6 +32,7 @@ class LieutenantTerraform(ReusableWidgetMixin):
 		"""
 		self.cfg = LieutenantTerraformConfig()
 		self.tkr = tk.Tk()
+		self.configure_theme(self.tkr)
 		self.tkr.title("Lieutenant Terraform")
 		self.raw_output = ""
 		self.tkr.geometry(self.cfg.prefs["settings"].get("Window geometry", "800x600"))

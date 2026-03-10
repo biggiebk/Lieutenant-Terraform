@@ -11,6 +11,13 @@ class ReusableWidgetMixin:
 	Mixin providing reusable Tkinter and ttk widget helpers.
 	"""
 
+	THEME_BACKGROUND = "#172024"
+	THEME_FOREGROUND = "#c0effe"
+	THEME_SURFACE = "#223038"
+	THEME_ACTIVE = "#2b3d45"
+	THEME_BORDER = "#35525d"
+	THEME_SELECTION = "#406a79"
+
 	def _resolve_master(self, master: tk.Misc | None) -> tk.Misc:
 		"""
 		Resolve a widget master, defaulting to the current window when available.
@@ -25,42 +32,155 @@ class ReusableWidgetMixin:
 		msg = "A master widget is required for this helper."
 		raise ValueError(msg)
 
-	def configure_scrollbar_style(self) -> None:
+	def configure_theme(self, widget: tk.Misc) -> None:
+		"""
+		Configure the shared widget theme for a root or toplevel window.
+		"""
+		style = ttk.Style(widget)
+		try:
+			style.theme_use("clam")
+		except tk.TclError:
+			pass
+
+		widget.configure(bg=self.THEME_BACKGROUND)
+		widget.option_add("*Background", self.THEME_BACKGROUND)
+		widget.option_add("*Foreground", self.THEME_FOREGROUND)
+		widget.option_add("*Menu.background", self.THEME_SURFACE)
+		widget.option_add("*Menu.foreground", self.THEME_FOREGROUND)
+		widget.option_add("*Menu.activeBackground", self.THEME_ACTIVE)
+		widget.option_add("*Menu.activeForeground", self.THEME_FOREGROUND)
+		widget.option_add("*Menu.relief", "flat")
+
+		style.configure(
+			".",
+			background=self.THEME_BACKGROUND,
+			foreground=self.THEME_FOREGROUND,
+			fieldbackground=self.THEME_SURFACE,
+			bordercolor=self.THEME_BORDER,
+			lightcolor=self.THEME_BORDER,
+			darkcolor=self.THEME_BORDER,
+			troughcolor=self.THEME_BACKGROUND,
+			arrowcolor=self.THEME_FOREGROUND,
+		)
+		style.configure("TFrame", background=self.THEME_BACKGROUND)
+		style.configure("TLabel", background=self.THEME_BACKGROUND, foreground=self.THEME_FOREGROUND)
+		style.configure(
+			"TButton",
+			background=self.THEME_SURFACE,
+			foreground=self.THEME_FOREGROUND,
+			bordercolor=self.THEME_BORDER,
+			focuscolor=self.THEME_BORDER,
+			padding=6,
+		)
+		style.map(
+			"TButton",
+			background=[("active", self.THEME_ACTIVE), ("pressed", self.THEME_SELECTION)],
+			foreground=[("disabled", self.THEME_BORDER)],
+		)
+		style.configure(
+			"TEntry",
+			fieldbackground=self.THEME_SURFACE,
+			foreground=self.THEME_FOREGROUND,
+			insertcolor=self.THEME_FOREGROUND,
+			bordercolor=self.THEME_BORDER,
+		)
+		style.configure(
+			"TCombobox",
+			fieldbackground=self.THEME_SURFACE,
+			foreground=self.THEME_FOREGROUND,
+			background=self.THEME_SURFACE,
+			arrowcolor=self.THEME_FOREGROUND,
+			bordercolor=self.THEME_BORDER,
+		)
+		style.map(
+			"TCombobox",
+			fieldbackground=[("readonly", self.THEME_SURFACE)],
+			selectbackground=[("readonly", self.THEME_SELECTION)],
+			selectforeground=[("readonly", self.THEME_FOREGROUND)],
+		)
+		style.configure("TCheckbutton", background=self.THEME_BACKGROUND, foreground=self.THEME_FOREGROUND)
+		style.map("TCheckbutton", background=[("active", self.THEME_BACKGROUND)])
+		style.configure(
+			"Treeview",
+			background=self.THEME_SURFACE,
+			fieldbackground=self.THEME_SURFACE,
+			foreground=self.THEME_FOREGROUND,
+			bordercolor=self.THEME_BORDER,
+		)
+		style.map(
+			"Treeview",
+			background=[("selected", self.THEME_SELECTION)],
+			foreground=[("selected", self.THEME_FOREGROUND)],
+		)
+		style.configure(
+			"Treeview.Heading",
+			background=self.THEME_ACTIVE,
+			foreground=self.THEME_FOREGROUND,
+			bordercolor=self.THEME_BORDER,
+		)
+		style.map("Treeview.Heading", background=[("active", self.THEME_SELECTION)])
+		style.configure(
+			"TLabelframe",
+			background=self.THEME_BACKGROUND,
+			foreground=self.THEME_FOREGROUND,
+			bordercolor=self.THEME_BORDER,
+		)
+		style.configure("TLabelframe.Label", background=self.THEME_BACKGROUND, foreground=self.THEME_FOREGROUND)
+
+		self.configure_scrollbar_style(style)
+
+	def configure_scrollbar_style(self, style: ttk.Style | None = None) -> None:
 		"""
 		Configure the shared scrollbar styles.
 		"""
-		style = ttk.Style()
+		style = style or ttk.Style()
 		style.configure(
 			"Vertical.TScrollbar",
-			background="lightgray",
-			troughcolor="darkgray",
-			bordercolor="black",
-			arrowcolor="black",
+			background=self.THEME_SURFACE,
+			troughcolor=self.THEME_BACKGROUND,
+			bordercolor=self.THEME_BORDER,
+			arrowcolor=self.THEME_FOREGROUND,
 		)
 		style.configure(
 			"Horizontal.TScrollbar",
-			background="lightgray",
-			troughcolor="darkgray",
-			bordercolor="black",
-			arrowcolor="black",
+			background=self.THEME_SURFACE,
+			troughcolor=self.THEME_BACKGROUND,
+			bordercolor=self.THEME_BORDER,
+			arrowcolor=self.THEME_FOREGROUND,
+		)
+		style.map(
+			"Vertical.TScrollbar",
+			background=[("active", self.THEME_ACTIVE)],
+		)
+		style.map(
+			"Horizontal.TScrollbar",
+			background=[("active", self.THEME_ACTIVE)],
 		)
 
 	def create_menu(self, master: tk.Misc, tearoff: int = 0, **kwargs) -> tk.Menu:
 		"""
 		Create a menu widget.
 		"""
-		return tk.Menu(master, tearoff=tearoff, **kwargs)
+		menu_kwargs = {
+			"tearoff": tearoff,
+			"bg": self.THEME_SURFACE,
+			"fg": self.THEME_FOREGROUND,
+			"activebackground": self.THEME_ACTIVE,
+			"activeforeground": self.THEME_FOREGROUND,
+			"relief": tk.FLAT,
+			"bd": 0,
+		}
+		menu_kwargs.update(kwargs)
+		return tk.Menu(master, **menu_kwargs)
 
 	def create_paned_window(self, master: tk.Misc, orient: str = tk.HORIZONTAL, **kwargs) -> tk.PanedWindow:
 		"""
 		Create a paned window widget.
 		"""
-		style = ttk.Style()
-		background = style.lookup("TFrame", "background") or "SystemButtonFace"
 		paned_window_kwargs = {
 			"orient": orient,
 			"bd": 0,
-			"bg": background,
+			"bg": self.THEME_BACKGROUND,
 			"relief": tk.FLAT,
 			"sashrelief": tk.FLAT,
 			"sashwidth": 8,
@@ -85,6 +205,7 @@ class ReusableWidgetMixin:
 		Create a dismissable popup window with a single OK button.
 		"""
 		popup = tk.Toplevel(parent)
+		self.configure_theme(popup)
 		popup.title(title)
 		popup.geometry(geometry)
 		popup.transient(parent)
@@ -215,13 +336,27 @@ class ReusableWidgetMixin:
 		"""
 		Create a canvas widget.
 		"""
-		return tk.Canvas(master, **kwargs)
+		canvas_kwargs = {
+			"bg": self.THEME_BACKGROUND,
+			"highlightthickness": 0,
+			"bd": 0,
+		}
+		canvas_kwargs.update(kwargs)
+		return tk.Canvas(master, **canvas_kwargs)
 
 	def create_text_widget(self, master: tk.Misc, **kwargs) -> tk.Text:
 		"""
 		Create a text widget.
 		"""
-		return tk.Text(master, **kwargs)
+		text_kwargs = {
+			"bg": self.THEME_BACKGROUND,
+			"fg": self.THEME_FOREGROUND,
+			"insertbackground": self.THEME_FOREGROUND,
+			"selectbackground": self.THEME_SELECTION,
+			"selectforeground": self.THEME_FOREGROUND,
+		}
+		text_kwargs.update(kwargs)
+		return tk.Text(master, **text_kwargs)
 
 	def create_treeview_widget(
 		self,
