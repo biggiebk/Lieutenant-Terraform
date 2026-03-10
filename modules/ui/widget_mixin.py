@@ -256,13 +256,22 @@ class ReusableWidgetMixin:
 		button_kwargs.update(kwargs)
 		return tk.Button(master, **button_kwargs)
 
-	def create_menu_button(self, master: tk.Misc, text: str, menu: tk.Menu, **kwargs) -> tk.Menubutton:
+	def create_menu_button(self, master: tk.Misc, text: str, menu: tk.Menu, **kwargs) -> tk.Button:
 		"""
-		Create a themed menubutton for a custom menu bar.
+		Create a themed button that posts a dropdown menu for a custom menu bar.
 		"""
+		def show_menu() -> None:
+			menu.update_idletasks()
+			x_position = button.winfo_rootx()
+			y_position = button.winfo_rooty() + button.winfo_height()
+			try:
+				menu.tk_popup(x_position, y_position)
+			finally:
+				menu.grab_release()
+
 		button_kwargs = {
 			"text": text,
-			"menu": menu,
+			"command": show_menu,
 			"bg": self.THEME_BACKGROUND,
 			"fg": self.THEME_FOREGROUND,
 			"activebackground": self.THEME_ACTIVE,
@@ -270,12 +279,14 @@ class ReusableWidgetMixin:
 			"relief": tk.FLAT,
 			"bd": 0,
 			"highlightthickness": 0,
-			"direction": "below",
 			"padx": 10,
 			"pady": 6,
+			"anchor": tk.W,
 		}
 		button_kwargs.update(kwargs)
-		return tk.Menubutton(master, **button_kwargs)
+		button = tk.Button(master, **button_kwargs)
+		button.bind("<Down>", lambda _event: show_menu())
+		return button
 
 	def _start_window_drag(self, event, window: tk.Tk | tk.Toplevel) -> str:
 		"""
