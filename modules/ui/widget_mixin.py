@@ -22,6 +22,14 @@ class ReusableWidgetMixin:
 	WINDOWS_BORDER_COLOR_ATTRIBUTE_ID = 34
 	WINDOWS_CAPTION_COLOR_ATTRIBUTE_ID = 35
 	WINDOWS_TEXT_COLOR_ATTRIBUTE_ID = 36
+	WINDOWS_GWL_EXSTYLE = -20
+	WINDOWS_WS_EX_APPWINDOW = 0x00040000
+	WINDOWS_WS_EX_TOOLWINDOW = 0x00000080
+	WINDOWS_SWP_NOSIZE = 0x0001
+	WINDOWS_SWP_NOMOVE = 0x0002
+	WINDOWS_SWP_NOZORDER = 0x0004
+	WINDOWS_SWP_NOACTIVATE = 0x0010
+	WINDOWS_SWP_FRAMECHANGED = 0x0020
 	WINDOW_MIN_WIDTH = 320
 	WINDOW_MIN_HEIGHT = 220
 	CURSOR_WINDOW_OFFSET_Y = 16
@@ -199,6 +207,51 @@ class ReusableWidgetMixin:
 
 		widget.after_idle(apply_theme)
 
+	def enable_taskbar_icon_for_custom_window(self, window: tk.Tk | tk.Toplevel) -> None:
+		"""
+		Force a custom-chrome window to use normal Windows app-window taskbar behavior.
+		"""
+		if sys.platform != "win32":
+			return
+
+		window._force_taskbar_icon = True
+
+		def apply_style() -> None:
+			try:
+				import ctypes
+
+				window.update_idletasks()
+				hwnd = window.winfo_id()
+				user32 = ctypes.windll.user32
+				get_window_long_ptr = getattr(user32, "GetWindowLongPtrW", user32.GetWindowLongW)
+				set_window_long_ptr = getattr(user32, "SetWindowLongPtrW", user32.SetWindowLongW)
+
+				extended_style = get_window_long_ptr(hwnd, self.WINDOWS_GWL_EXSTYLE)
+				extended_style &= ~self.WINDOWS_WS_EX_TOOLWINDOW
+				extended_style |= self.WINDOWS_WS_EX_APPWINDOW
+				set_window_long_ptr(hwnd, self.WINDOWS_GWL_EXSTYLE, extended_style)
+
+				user32.SetWindowPos(
+					hwnd,
+					0,
+					0,
+					0,
+					0,
+					0,
+					self.WINDOWS_SWP_NOMOVE
+					| self.WINDOWS_SWP_NOSIZE
+					| self.WINDOWS_SWP_NOZORDER
+					| self.WINDOWS_SWP_NOACTIVATE
+					| self.WINDOWS_SWP_FRAMECHANGED,
+				)
+
+				window.withdraw()
+				window.after(10, window.deiconify)
+			except (AttributeError, OSError, RuntimeError, tk.TclError):
+				return
+
+		window.after_idle(apply_style)
+
 	def use_custom_windows_chrome(self) -> bool:
 		"""
 		Return whether Windows should use custom in-app chrome.
@@ -369,6 +422,8 @@ class ReusableWidgetMixin:
 		if window.state() == "normal":
 			window.overrideredirect(True)
 			window.lift()
+			if getattr(window, "_force_taskbar_icon", False):
+				self.enable_taskbar_icon_for_custom_window(window)
 
 	def create_custom_title_bar(
 		self,

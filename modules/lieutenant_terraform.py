@@ -68,6 +68,7 @@ class LieutenantTerraform(ReusableWidgetMixin):
 
 		if self.use_custom_windows_chrome():
 			self.tkr.overrideredirect(True)
+			self.enable_taskbar_icon_for_custom_window(self.tkr)
 			self.tkr.grid_rowconfigure(2, weight=1)
 			title_bar = self.create_custom_title_bar(self.tkr, "Lieutenant Terraform", self.__exit)
 			title_bar.grid(column=0, row=0, sticky="ew")
