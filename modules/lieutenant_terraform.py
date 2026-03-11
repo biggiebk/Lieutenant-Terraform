@@ -559,17 +559,15 @@ class LieutenantTerraform(ReusableWidgetMixin):
 
 	def __show_run_completion(self, command: str, was_successful: bool, exit_on_done: bool = False) -> None:
 		"""
-		Display an always-on-top popup when a run finishes.
+		Bring the main window to the foreground when a run finishes.
 		"""
-		status_text = "completed successfully" if was_successful else "failed"
-		title = "Run Complete" if was_successful else "Run Failed"
-		message = f"Run for '{command}' {status_text}."
-		self.create_popup(
-			self.tkr,
-			title=title,
-			message=message,
-			on_ok=self.__exit if exit_on_done and was_successful else None,
-		)
+		self.tkr.deiconify()
+		self.tkr.lift()
+		self.tkr.focus_force()
+		self.tkr.attributes("-topmost", True)
+		self.tkr.after(200, lambda: self.tkr.attributes("-topmost", False))
+		if exit_on_done and was_successful:
+			self.tkr.after(250, self.__exit)
 
 	@beartype
 	def __toggle_word_wrap(self) -> None:
