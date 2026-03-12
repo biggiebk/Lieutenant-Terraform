@@ -30,6 +30,7 @@ class ReusableWidgetMixin:
 	WINDOWS_SWP_NOZORDER = 0x0004
 	WINDOWS_SWP_NOACTIVATE = 0x0010
 	WINDOWS_SWP_FRAMECHANGED = 0x0020
+	WINDOWS_SW_SHOW = 5
 	WINDOW_MIN_WIDTH = 320
 	WINDOW_MIN_HEIGHT = 220
 	CURSOR_WINDOW_OFFSET_Y = 16
@@ -244,9 +245,8 @@ class ReusableWidgetMixin:
 					| self.WINDOWS_SWP_NOACTIVATE
 					| self.WINDOWS_SWP_FRAMECHANGED,
 				)
-
-				window.withdraw()
-				window.after(10, window.deiconify)
+				user32.ShowWindow(hwnd, self.WINDOWS_SW_SHOW)
+				window.after(0, window.lift)
 			except (AttributeError, OSError, RuntimeError, tk.TclError):
 				return
 
