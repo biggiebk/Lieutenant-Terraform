@@ -48,6 +48,7 @@ class LieutenantTerraform(ReusableWidgetMixin):
 		self.search_results = []
 		self.current_match_index = -1
 		self.match_item_lines = {}
+		self.match_item_patterns = {}
 		self.match_pattern_items = {}
 		self.match_pattern_counts = {}
 
@@ -150,12 +151,11 @@ class LieutenantTerraform(ReusableWidgetMixin):
 		# Treeview for displaying matching tag patterns, to the right of main_text_area
 		match_columns = (
 			("Tag", "Tag", 100, tk.W),
-			("Pattern", "Pattern", 180, tk.W),
 			("Count", "Count", 60, tk.CENTER),
 		)
 		self.__configure_match_sidebar_style()
 		match_frame, self.match_patterns_tree = self.create_treeview(match_columns, master=match_sidebar)
-		self.match_patterns_tree.configure(style="TagSidebar.Treeview")
+		self.match_patterns_tree.configure(style="TagSidebar.Treeview", show="")
 		match_frame.pack(fill=tk.BOTH, expand=True, padx=(5, 0), pady=2)
 		self.match_patterns_tree.bind("<<TreeviewSelect>>", self.__on_pattern_selected)
 
@@ -315,7 +315,11 @@ class LieutenantTerraform(ReusableWidgetMixin):
 		Return the first configured rule name and pattern matching a line.
 		"""
 		for rule_name, rule_info in self.cfg.prefs.get(preference_key, {}).items():
-			for pattern in rule_info.get("patterns", []):
+			patterns = rule_info.get("patterns", [])
+			single_pattern = rule_info.get("pattern", "")
+			if single_pattern:
+				patterns = [single_pattern]
+			for pattern in patterns:
 				try:
 					if re.search(pattern, line, re.IGNORECASE):
 						return rule_name, pattern
@@ -327,7 +331,7 @@ class LieutenantTerraform(ReusableWidgetMixin):
 		"""
 		Record a matched tag in the sidebar with a running count.
 		"""
-		match_key = (name, pattern)
+		match_key = name
 		count = self.match_pattern_counts.get(match_key, 0) + 1
 		self.match_pattern_counts[match_key] = count
 		item_id = self.match_pattern_items.get(match_key)
@@ -335,12 +339,13 @@ class LieutenantTerraform(ReusableWidgetMixin):
 			item_id = self.match_patterns_tree.insert(
 				"",
 				tk.END,
-				values=(name, pattern, count),
+				values=(name, count),
 			)
 			self.match_pattern_items[match_key] = item_id
 			self.match_item_lines[item_id] = line_number
+			self.match_item_patterns[item_id] = pattern
 		else:
-			self.match_patterns_tree.item(item_id, values=(name, pattern, count))
+			self.match_patterns_tree.item(item_id, values=(name, count))
 
 	@beartype
 	def __update_status_bar(self) -> None:
@@ -440,7 +445,9 @@ class LieutenantTerraform(ReusableWidgetMixin):
 			return
 
 		item_id = selected_item[0]
-		_tag_name, pattern, _count = self.match_patterns_tree.item(item_id, "values")
+		pattern = self.match_item_patterns.get(item_id)
+		if not pattern:
+			return
 		self.search_entry.delete(0, tk.END)
 		self.search_entry.insert(0, pattern)
 		self.__find()
@@ -539,6 +546,7 @@ class LieutenantTerraform(ReusableWidgetMixin):
 		def run_pipeline():
 			# Clear the match sidebar before each run
 			self.match_item_lines = {}
+			self.match_item_patterns = {}
 			self.match_pattern_items = {}
 			self.match_pattern_counts = {}
 			for item in self.match_patterns_tree.get_children():

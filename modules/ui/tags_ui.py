@@ -20,6 +20,8 @@ class PatternRulesUI(ChildWindow):
 		cfg: LieutenantTerraformConfig,
 		preference_key: str,
 		item_label: str,
+		supports_color: bool = True,
+		supports_multiple_patterns: bool = True,
 		parent: tk.Misc | None = None,
 		title: str = "Edit Rules",
 		geometry: str = "600x400",
@@ -28,14 +30,18 @@ class PatternRulesUI(ChildWindow):
 		self.preference_key = preference_key
 		self.item_label = item_label
 		self.item_label_plural = f"{item_label}s"
+		self.supports_color = supports_color
+		self.supports_multiple_patterns = supports_multiple_patterns
 		self.rules = cfg.prefs[preference_key]
 		self.parent = parent
 
-		columns = (
+		columns = [
 			(self.item_label, self.item_label, 100, tk.W),
-			("Color", "Color", 100, tk.W),
-			("Patterns", "Patterns", 300, tk.W),
-		)
+		]
+		if self.supports_color:
+			columns.append(("Color", "Color", 100, tk.W))
+		pattern_heading = "Patterns" if self.supports_multiple_patterns else "Pattern"
+		columns.append((pattern_heading, pattern_heading, 300, tk.W))
 		frame, self.tree = self.create_treeview(columns)
 		frame.pack(fill=tk.BOTH, expand=True, padx=10, pady=10)
 		self._populate_tree()
@@ -53,9 +59,19 @@ class PatternRulesUI(ChildWindow):
 	def _populate_tree(self) -> None:
 		self.tree.delete(*self.tree.get_children())
 		for rule_name, info in self.rules.items():
-			patterns = ", ".join(info.get("patterns", []))
-			color = info.get("color", "")
-			self.tree.insert("", tk.END, values=(rule_name, color, patterns))
+			if self.supports_multiple_patterns:
+				pattern_value = ", ".join(info.get("patterns", []))
+			else:
+				pattern_value = info.get("pattern", "")
+				if not pattern_value:
+					patterns = info.get("patterns", [])
+					pattern_value = patterns[0] if patterns else ""
+			if self.supports_color:
+				color = info.get("color", "")
+				values = (rule_name, color, pattern_value)
+			else:
+				values = (rule_name, pattern_value)
+			self.tree.insert("", tk.END, values=values)
 
 	def _add_rule(self) -> None:
 		self._edit_tag_dialog()
@@ -82,32 +98,38 @@ class PatternRulesUI(ChildWindow):
 		self.destroy()
 
 	def _edit_tag_dialog(self, values=None) -> None:
-		dialog = self.create_modal(f"Edit {self.item_label}", "400x260")
+		dialog = self.create_modal(f"Edit {self.item_label}", "400x260" if self.supports_color else "400x220")
 		rule_entry = self.create_labeled_entry(
 			dialog,
 			label_text=f"{self.item_label}:",
 			width=30,
 			value=values[0] if values else "",
 		)
-		color_entry = self.create_labeled_entry(
-			dialog,
-			label_text="Color:",
-			width=30,
-			value=values[1] if values else "",
-		)
+		color_entry = None
+		pattern_value = values[2] if self.supports_color and values else values[1] if values else ""
+		if self.supports_color:
+			color_entry = self.create_labeled_entry(
+				dialog,
+				label_text="Color:",
+				width=30,
+				value=values[1] if values else "",
+			)
 		patterns_entry = self.create_labeled_entry(
 			dialog,
-			label_text="Patterns (comma separated):",
+			label_text="Patterns (comma separated):" if self.supports_multiple_patterns else "Pattern:",
 			width=40,
-			value=values[2] if values else "",
+			value=pattern_value,
 		)
 
 		def save() -> None:
 			rule_name = rule_entry.get().strip()
-			color = color_entry.get().strip()
-			patterns = [pattern.strip() for pattern in patterns_entry.get().split(",") if pattern.strip()]
+			pattern_text = patterns_entry.get().strip()
+			patterns = [pattern.strip() for pattern in pattern_text.split(",") if pattern.strip()]
 			if rule_name:
-				self.rules[rule_name] = {"color": color, "patterns": patterns}
+				if self.supports_color:
+					self.rules[rule_name] = {"color": color_entry.get().strip(), "patterns": patterns}
+				else:
+					self.rules[rule_name] = {"pattern": pattern_text}
 				self._populate_tree()
 			dialog.destroy()
 
@@ -131,6 +153,8 @@ class TagsUI(PatternRulesUI):
 			cfg,
 			preference_key="line_tags",
 			item_label="Tag",
+			supports_color=False,
+			supports_multiple_patterns=False,
 			parent=parent,
 			title=title,
 			geometry=geometry,
