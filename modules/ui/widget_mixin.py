@@ -208,6 +208,27 @@ class ReusableWidgetMixin:
 
 		widget.after_idle(apply_theme)
 
+	def _get_windows_wrapper_hwnd(self, window: tk.Tk | tk.Toplevel) -> int:
+		"""
+		Get the native top-level wrapper window handle for a Tk window on Windows.
+		"""
+		import ctypes
+
+		user32 = ctypes.windll.user32
+		hwnd = window.winfo_id()
+		get_ancestor = getattr(user32, "GetAncestor", None)
+		if get_ancestor is not None:
+			ga_root = 2
+			wrapper_hwnd = get_ancestor(hwnd, ga_root)
+			if wrapper_hwnd:
+				return wrapper_hwnd
+		get_parent = getattr(user32, "GetParent", None)
+		if get_parent is not None:
+			wrapper_hwnd = get_parent(hwnd)
+			if wrapper_hwnd:
+				return wrapper_hwnd
+		return hwnd
+
 	def enable_taskbar_icon_for_custom_window(self, window: tk.Tk | tk.Toplevel) -> None:
 		"""
 		Force a custom-chrome window to use normal Windows app-window taskbar behavior.
@@ -222,7 +243,7 @@ class ReusableWidgetMixin:
 				import ctypes
 
 				window.update_idletasks()
-				hwnd = window.winfo_id()
+				hwnd = self._get_windows_wrapper_hwnd(window)
 				user32 = ctypes.windll.user32
 				get_window_long_ptr = getattr(user32, "GetWindowLongPtrW", user32.GetWindowLongW)
 				set_window_long_ptr = getattr(user32, "SetWindowLongPtrW", user32.SetWindowLongW)
@@ -251,6 +272,7 @@ class ReusableWidgetMixin:
 				return
 
 		window.after_idle(apply_style)
+		window.after(150, apply_style)
 
 	def use_custom_windows_chrome(self) -> bool:
 		"""
