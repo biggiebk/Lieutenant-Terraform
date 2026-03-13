@@ -78,6 +78,7 @@ class LieutenantTerraform(ReusableWidgetMixin):
 			menu_bar.grid(column=0, row=1, sticky="ew")
 			content_parent = self.create_frame(self.tkr)
 			content_parent.grid(column=0, row=2, sticky="nsew")
+			self.create_resize_borders(self.tkr)
 			resize_handle = self.create_resize_handle(self.tkr, self.tkr)
 			resize_handle.grid(column=0, row=3, sticky="se", padx=4, pady=2)
 			main_row = 0

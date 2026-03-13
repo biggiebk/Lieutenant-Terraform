@@ -409,25 +409,59 @@ class ReusableWidgetMixin:
 		window.geometry(f"+{start_x + delta_x}+{start_y + delta_y}")
 		return "break"
 
-	def _start_window_resize(self, event, window: tk.Tk | tk.Toplevel) -> str:
+	def _start_window_resize(self, event, window: tk.Tk | tk.Toplevel, direction: str = "se") -> str:
 		"""
 		Capture the initial resize position for a custom window resize grip.
 		"""
-		window._resize_origin = (window.winfo_width(), window.winfo_height(), event.x_root, event.y_root)
+		window._resize_origin = (
+			window.winfo_x(),
+			window.winfo_y(),
+			window.winfo_width(),
+			window.winfo_height(),
+			event.x_root,
+			event.y_root,
+			direction,
+		)
 		return "break"
 
 	def _resize_window(self, event, window: tk.Tk | tk.Toplevel) -> str:
 		"""
 		Resize a custom-chrome window from its resize grip.
 		"""
-		width, height, root_x, root_y = getattr(
+		start_x, start_y, width, height, root_x, root_y, direction = getattr(
 			window,
 			"_resize_origin",
-			(window.winfo_width(), window.winfo_height(), event.x_root, event.y_root),
+			(
+				window.winfo_x(),
+				window.winfo_y(),
+				window.winfo_width(),
+				window.winfo_height(),
+				event.x_root,
+				event.y_root,
+				"se",
+			),
 		)
-		new_width = max(self.WINDOW_MIN_WIDTH, width + (event.x_root - root_x))
-		new_height = max(self.WINDOW_MIN_HEIGHT, height + (event.y_root - root_y))
-		window.geometry(f"{new_width}x{new_height}")
+		delta_x = event.x_root - root_x
+		delta_y = event.y_root - root_y
+		new_x = start_x
+		new_y = start_y
+		new_width = width
+		new_height = height
+
+		if "e" in direction:
+			new_width = max(self.WINDOW_MIN_WIDTH, width + delta_x)
+		if "s" in direction:
+			new_height = max(self.WINDOW_MIN_HEIGHT, height + delta_y)
+		if "w" in direction:
+			proposed_width = width - delta_x
+			new_width = max(self.WINDOW_MIN_WIDTH, proposed_width)
+			new_x = start_x + (width - new_width)
+		if "n" in direction:
+			proposed_height = height - delta_y
+			new_height = max(self.WINDOW_MIN_HEIGHT, proposed_height)
+			new_y = start_y + (height - new_height)
+
+		window.geometry(f"{new_width}x{new_height}+{new_x}+{new_y}")
 		return "break"
 
 	def minimize_custom_window(self, window: tk.Tk | tk.Toplevel) -> None:
@@ -512,9 +546,45 @@ class ReusableWidgetMixin:
 		Create a resize handle for a custom-chrome window.
 		"""
 		handle = self.create_plain_label(master, text="◢", cursor="size_nw_se")
-		handle.bind("<ButtonPress-1>", lambda event, win=window: self._start_window_resize(event, win))
+		handle.bind("<ButtonPress-1>", lambda event, win=window: self._start_window_resize(event, win, "se"))
 		handle.bind("<B1-Motion>", lambda event, win=window: self._resize_window(event, win))
 		return handle
+
+	def create_resize_borders(self, window: tk.Tk | tk.Toplevel) -> None:
+		"""
+		Create invisible resize borders around a custom-chrome window.
+		"""
+		handles = {
+			"n": {"cursor": "size_ns", "relx": 0.0, "rely": 0.0, "relwidth": 1.0, "height": 4},
+			"s": {"cursor": "size_ns", "relx": 0.0, "rely": 1.0, "relwidth": 1.0, "height": 4, "anchor": "sw"},
+			"w": {"cursor": "size_we", "relx": 0.0, "rely": 0.0, "width": 4, "relheight": 1.0},
+			"e": {"cursor": "size_we", "relx": 1.0, "rely": 0.0, "width": 4, "relheight": 1.0, "anchor": "ne"},
+			"nw": {"cursor": "size_nw_se", "relx": 0.0, "rely": 0.0, "width": 8, "height": 8},
+			"ne": {"cursor": "size_ne_sw", "relx": 1.0, "rely": 0.0, "width": 8, "height": 8, "anchor": "ne"},
+			"sw": {"cursor": "size_ne_sw", "relx": 0.0, "rely": 1.0, "width": 8, "height": 8, "anchor": "sw"},
+			"se": {"cursor": "size_nw_se", "relx": 1.0, "rely": 1.0, "width": 8, "height": 8, "anchor": "se"},
+		}
+		window._resize_handles = []
+		for direction, placement in handles.items():
+			handle = tk.Frame(
+				window,
+				bg=self.THEME_BACKGROUND,
+				bd=0,
+				highlightthickness=0,
+				cursor=placement["cursor"],
+			)
+			place_kwargs = {key: value for key, value in placement.items() if key != "cursor"}
+			handle.place(**place_kwargs)
+			handle.bind(
+				"<ButtonPress-1>",
+				lambda event, win=window, resize_direction=direction: self._start_window_resize(
+					event,
+					win,
+					resize_direction,
+				),
+			)
+			handle.bind("<B1-Motion>", lambda event, win=window: self._resize_window(event, win))
+			window._resize_handles.append(handle)
 
 	def configure_scrollbar_style(self, style: ttk.Style | None = None) -> None:
 		"""

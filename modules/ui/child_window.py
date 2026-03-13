@@ -53,6 +53,7 @@ class ChildWindow(ReusableWidgetMixin, tk.Toplevel):
 			self.content_frame.grid(column=0, row=1, sticky="nsew")
 			self.content_frame.grid_rowconfigure(0, weight=1)
 			self.content_frame.grid_columnconfigure(0, weight=1)
+			self.create_resize_borders(self)
 			resize_handle = self.create_resize_handle(self, self)
 			resize_handle.grid(column=0, row=2, sticky="se", padx=4, pady=2)
 
